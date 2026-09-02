@@ -54,11 +54,15 @@ class BrowserContainer(QWidget):
         #
         # NOTE: an (empty) QTabBar's sizeHint().height() is 0 — using it here
         # would collapse the whole top row.  Use the widget's minimumHeight
-        # instead, which is 34 (TabBar calls setFixedHeight(34)).
+        # instead, which is pinned by TabBar.setFixedHeight() (currently 32).
         row_height = self.tab_bar.minimumHeight()
         if row_height <= 0:
             row_height = 34
         self.tab_row.setFixedHeight(row_height)
+
+        # Keep the toolbar the same height as the tab row so both chrome rows
+        # read as one uniform bar (Edge-like).
+        self.toolbar.setFixedHeight(row_height)
         # 单元层为浅色条：顶行与工具栏共享同一浅背景,
         # 激活标签为纯白以与页面形成“相连”的 Edge 观感。
         bar_bg = '#eceff1'
