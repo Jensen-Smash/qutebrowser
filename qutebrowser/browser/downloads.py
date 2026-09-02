@@ -479,9 +479,9 @@ class AbstractDownloadItem(QObject):
             errmsg = " - {}".format(self.error_msg)
 
         if all(e is None for e in [perc, remaining, self.stats.total]):
-            return ('{index}: {name} [{speed:>10}|{down}]{errmsg}'.format(
-                index=self.index, name=self.basename, speed=speed,
-                down=down, errmsg=errmsg))
+            return '{name} [{speed:>10}|{down}]{errmsg}'.format(
+                name=self.basename, speed=speed,
+                down=down, errmsg=errmsg)
 
         perc = round(perc)
         if remaining is None:
@@ -490,15 +490,15 @@ class AbstractDownloadItem(QObject):
             remaining = utils.format_seconds(remaining)
         total = utils.format_size(self.stats.total, suffix='B')
         if self.done:
-            return ('{index}: {name} [{perc:>2}%|{total}]{errmsg}'.format(
-                index=self.index, name=self.basename, perc=perc,
-                total=total, errmsg=errmsg))
+            return '{name} [{perc:>2}%|{total}]{errmsg}'.format(
+                name=self.basename, perc=perc,
+                total=total, errmsg=errmsg)
         else:
-            return ('{index}: {name} [{speed:>10}|{remaining:>5}|{perc:>2}%|'
-                    '{down}/{total}]{errmsg}'.format(
-                        index=self.index, name=self.basename, speed=speed,
-                        remaining=remaining, perc=perc, down=down,
-                        total=total, errmsg=errmsg))
+            return '{name} [{speed:>10}|{remaining:>5}|{perc:>2}%|' \
+                   '{down}/{total}]{errmsg}'.format(
+                       name=self.basename, speed=speed,
+                       remaining=remaining, perc=perc, down=down,
+                       total=total, errmsg=errmsg)
 
     def _do_die(self):
         """Do cleanup steps after a download has died."""
