@@ -168,7 +168,7 @@ class Toolbar(QToolBar):
 
         try:
             entries = web_history.entries_before(
-                int(time.time()), limit=30)
+                int(time.time()), limit=30, offset=None)
         except Exception:
             entries = []
 
