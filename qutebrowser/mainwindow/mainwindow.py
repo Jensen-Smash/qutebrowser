@@ -29,6 +29,8 @@ from qutebrowser.browser import downloadview, hints, downloads
 from qutebrowser.misc import crashsignal, keyhintwidget, sessions, objects
 from qutebrowser.qt import sip
 from qutebrowser.mainwindow import toolbar
+from qutebrowser.mainwindow.browsercontainer import BrowserContainer
+
 from qutebrowser.qt.core import QUrl
 
 win_id_gen = itertools.count(0)
@@ -236,6 +238,11 @@ class MainWindow(QWidget):
             back_callback=self.go_back,
             reload_callback=self.reload_page,
             parent=self)
+
+        self.browser_container = BrowserContainer(
+            self.toolbar,
+            parent=self
+)
         
         self._init_command_dispatcher()
 
@@ -447,7 +454,7 @@ class MainWindow(QWidget):
         self._vbox.removeWidget(self._downloadview)
         self._vbox.removeWidget(self.status)
         self._vbox.removeWidget(self.toolbar)
-        widgets: list[QWidget] = [self.toolbar,self.tabbed_browser.widget]
+        widgets: list[QWidget] = [self.browser_container,self.tabbed_browser.widget]
 
         downloads_position = config.val.downloads.position
         if downloads_position == 'top':
