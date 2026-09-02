@@ -3173,7 +3173,7 @@ colors.statusbar.url.warn.fg:
 
 colors.tabs.bar.bg:
 
-  default: '#202124'
+  default: '#eceff1'
 
   type: QssColor
 
