@@ -5,6 +5,8 @@ from qutebrowser.qt.widgets import (
 )
 from qutebrowser.qt.core import Qt
 
+from qutebrowser.mainwindow.favorites import FavoritesSidebar
+
 
 class BrowserContainer(QWidget):
     """Edge-style layout container.
@@ -70,6 +72,31 @@ class BrowserContainer(QWidget):
         self.toolbar.setStyleSheet('QToolBar { background-color: %s; border: none; }'
                                    % bar_bg)
 
+        # -- ContentArea: [webview (stretch) | FavoritesSidebar (fixed)] ----
+        self.content_area = QWidget(self)
+        content_layout = QHBoxLayout(self.content_area)
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(0)
+
+        self.sidebar = FavoritesSidebar(
+            open_current_cb=self.toolbar.navigate_callback,
+            open_new_tab_cb=self.toolbar.open_new_tab_callback,
+            parent=self.content_area)
+        self.sidebar.hide()
+
+        content_layout.addWidget(self.tabs, 1)
+        content_layout.addWidget(self.sidebar, 0)
+
         self._layout.addWidget(self.tab_row)
         self._layout.addWidget(self.toolbar)
-        self._layout.addWidget(self.tabs, 1)
+        self._layout.addWidget(self.content_area, 1)
+
+        self.toolbar.set_favorites_active(False)
+        self.toolbar.favorites_toggle_requested.connect(
+            self.toggle_favorites_sidebar)
+
+    def toggle_favorites_sidebar(self):
+        """Show/hide the right-hand favorites sidebar."""
+        visible = not self.sidebar.isVisible()
+        self.sidebar.setVisible(visible)
+        self.toolbar.set_favorites_active(visible)
