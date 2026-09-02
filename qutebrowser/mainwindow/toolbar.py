@@ -163,20 +163,6 @@ class Toolbar(QToolBar):
             QToolBar QPushButton:disabled {
                 color: #a5a9ad;
             }
-
-            QToolBar QLineEdit {
-                background-color: #ffffff;
-                border: 1px solid #d8dcdf;
-                /* pill caps: radius = half of control height */
-                border-radius: 16px;
-                color: #202124;
-                padding: 0 8px;
-                selection-background-color: #bcd8f8;
-                selection-color: #202124;
-            }
-            QToolBar QLineEdit:focus {
-                border-color: #8ab4f8;
-            }
         """)
 
     def search_baidu(self):

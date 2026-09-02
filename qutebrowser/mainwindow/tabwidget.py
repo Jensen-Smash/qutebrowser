@@ -972,19 +972,6 @@ class TabBarStyle(QProxyStyle):
         assert style is not None
         return style
 
-    def _draw_indicator(self, layouts, opt, p):
-        """Draw the tab indicator.
-
-        Args:
-            layouts: The layouts from _tab_layout.
-            opt: QStyleOption from drawControl.
-            p: QPainter from drawControl.
-        """
-        color = opt.palette.base().color()
-        rect = layouts.indicator
-        if color.isValid() and rect.isValid():
-            p.fillRect(rect, color)
-
     def _draw_icon(self, layouts, opt, p):
         """Draw the tab icon.
 
