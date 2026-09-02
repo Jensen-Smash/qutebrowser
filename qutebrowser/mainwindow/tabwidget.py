@@ -97,13 +97,13 @@ class TabWidget(QWidget):
         # TabRow; see note above).
         self.plus_button = QToolButton(self)
         self.plus_button.setText("+")
-        self.plus_button.setFixedSize(30, 30)
+        self.plus_button.setFixedSize(28, 28)
         self.plus_button.setStyleSheet("""
             QToolButton {
                 background: transparent;
                 color: #3c4043;
-                border-radius: 10px;
-                font-size: 18px;
+                border-radius: 14px;
+                font-size: 16px;
                 font-weight: bold;
             }
 
@@ -528,7 +528,8 @@ class TabBar(QTabBar):
     def __init__(self, win_id, tab_widget, parent=None):
         super().__init__(parent)
 
-        self.setFixedHeight(34)
+        # 紧凑 Edge 顶栏高度(可由 TabWidget 顶行几何兜底)
+        self.setFixedHeight(32)
 
         self._win_id = win_id
         self._owner_tab_widget = tab_widget
@@ -782,7 +783,7 @@ class TabBar(QTabBar):
         return QSize(width, height)
 
     def _minimum_tab_height_uncached(self):
-        return 32
+        return 30
 
     def _tab_pinned(self, index: int) -> bool:
         """Return True if tab is pinned."""
@@ -1027,12 +1028,12 @@ class TabBarStyle(QProxyStyle):
             self.drawControl(QStyle.ControlElement.CE_TabBarTabLabel, opt, p, widget)
         elif element == QStyle.ControlElement.CE_TabBarTabShape:
 
-            # 标签外框，留出间距形成悬浮效果
+            # 标签外框，留出少量间距贴合紧凑观感
             rect = opt.rect.adjusted(
-                3,
-                3,
-                -3,
-                -3
+                2,
+                2,
+                -2,
+                -2
             )
 
             # 开启抗锯齿，让圆角平滑
@@ -1055,8 +1056,8 @@ class TabBarStyle(QProxyStyle):
             # 绘制圆角矩形
             p.drawRoundedRect(
                 rect,
-                8,
-                8
+                6,
+                6
             )
 
             # 保留 qutebrowser 原来的加载指示条
