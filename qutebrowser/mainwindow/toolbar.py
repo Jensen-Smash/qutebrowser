@@ -152,7 +152,8 @@ class Toolbar(QToolBar):
             QToolBar QLineEdit {
                 background-color: #ffffff;
                 border: 1px solid #d8dcdf;
-                border-radius: 16px;   /* r=height/2 → pill caps */ pill
+                /* pill caps: radius = half of control height */
+                border-radius: 16px;
                 color: #202124;
                 padding: 0 8px;
                 selection-background-color: #bcd8f8;
