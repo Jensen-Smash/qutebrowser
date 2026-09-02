@@ -1001,6 +1001,23 @@ class TabBarStyle(QProxyStyle):
         icon = opt.icon.pixmap(opt.iconSize, icon_mode, icon_state)
         self._base_style().drawItemPixmap(p, layouts.icon, Qt.AlignmentFlag.AlignCenter, icon)
 
+    def drawPrimitive(self, element, option, painter, widget=None):
+        """Draw a bolder native close ("×") for tabs."""
+        if element != QStyle.PrimitiveElement.PE_IndicatorTabClose:
+            return self._base_style().drawPrimitive(
+                element, option, painter, widget)
+
+        painter.save()
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        font = painter.font()
+        font.setBold(True)
+        painter.setFont(font)
+        # Tint like surrounding chrome text so a bold × reads clearly on the
+        # active (white) tab without overriding the hover cue too much.
+        painter.setPen(QColor('#5f6368'))
+        painter.drawText(option.rect, Qt.AlignmentFlag.AlignCenter, '×')
+        painter.restore()
+
     def drawControl(self, element, opt, p, widget=None):
         """Override drawControl to draw odd tabs in a different color.
 
@@ -1030,12 +1047,11 @@ class TabBarStyle(QProxyStyle):
             self.drawControl(QStyle.ControlElement.CE_TabBarTabLabel, opt, p, widget)
         elif element == QStyle.ControlElement.CE_TabBarTabShape:
 
-            # 标签间不留横向空隙：相邻标签紧贴成一条连续 Edge 观感；
-            # 仅保留上下各 2px 呼吸以容纳圆角/不与顶栏边缘粘连。
+            # 标签间留 2px 横向间距原(左右各缩1px),纵向仍各 2px 呼吸
             rect = opt.rect.adjusted(
-                0,
+                1,
                 2,
-                0,
+                -1,
                 -2
             )
 
