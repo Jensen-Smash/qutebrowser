@@ -237,6 +237,7 @@ class MainWindow(QWidget):
             navigate_callback=self.navigate,
             back_callback=self.go_back,
             reload_callback=self.reload_page,
+            open_new_tab_callback=self.open_url_new_tab,
             parent=self)
 
         self.browser_container = BrowserContainer(
@@ -428,6 +429,11 @@ class MainWindow(QWidget):
     def navigate(self, url):
         qurl = QUrl(url)
         self.tabbed_browser.load_url(qurl,newtab=False)
+
+    def open_url_new_tab(self, url):
+        """Open a url in a fresh foreground tab (used by history menu)."""
+        qurl = QUrl(url)
+        self.tabbed_browser.tabopen(url=qurl, background=False)
 
     def __repr__(self):
         return utils.get_repr(self)

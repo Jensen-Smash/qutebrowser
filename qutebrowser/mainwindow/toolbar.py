@@ -1,10 +1,13 @@
 from qutebrowser.qt.widgets import (
     QToolBar,
     QPushButton,
-    QLineEdit
+    QLineEdit,
+    QToolButton,
+    QMenu,
+    QStyle,
 )
 
-from qutebrowser.qt.core import QUrl
+from qutebrowser.qt.core import QUrl, QSize
 
 class UrlBar(QLineEdit):
 
@@ -14,13 +17,15 @@ class UrlBar(QLineEdit):
 
 class Toolbar(QToolBar):
 
-    def __init__(self,navigate_callback,back_callback,reload_callback,parent=None):
+    def __init__(self, navigate_callback, back_callback, reload_callback,
+                 open_new_tab_callback=None, parent=None):
         super().__init__(parent)
 
         self.navigate_callback = navigate_callback
         self.back_button = QPushButton("←")
         self.reload_button = QPushButton("⟳")
 
+        self.open_new_tab_callback = open_new_tab_callback
         self.back_callback = back_callback
         self.reload_callback = reload_callback
 
@@ -46,6 +51,36 @@ class Toolbar(QToolBar):
         self.back_button.setFixedHeight(content_h)
         self.reload_button.setFixedHeight(content_h)
         self.url_bar.setFixedHeight(content_h)
+
+        # --- 历史记录按钮(弹出最近历史的下拉列) ---------------------------
+        self.history_button = QToolButton(self)
+        self.history_button.setToolTip("历史记录")
+        style = self.style()
+        assert style is not None
+        self.history_button.setIcon(style.standardIcon(
+            QStyle.StandardPixmap.SP_BrowserReload))
+        self.history_button.setFixedSize(34, content_h)
+        self.history_button.setIconSize(QSize(20, 20))
+        self.history_button.setStyleSheet("""
+            QToolButton {
+                background: transparent;
+                border: none;
+            }
+            QToolButton:hover {
+                background: #d8dcdf;
+            }
+            QToolButton:pressed {
+                background: #c5c9cc;
+            }
+        """)
+
+        self.history_menu = QMenu(self)
+        self.history_button.setMenu(self.history_menu)
+        self.history_button.setPopupMode(
+            QToolButton.ToolButtonPopupMode.InstantPopup)
+        self.history_menu.aboutToShow.connect(self._populate_history_menu)
+
+        self.addWidget(self.history_button)
 
         # 与浅色 Chrome 一致的工具条按钮(容器再以统一浅背景底色并齐)
         self.setStyleSheet("""
@@ -103,3 +138,64 @@ class Toolbar(QToolBar):
 
     def set_back_enabled(self, enabled):
         self.back_button.setEnabled(enabled)
+
+    # ------------------------------------------------------------------ #
+    # History popup : show the latest 30 web-history pages, click opens a
+    # new tab.  Data comes straight from qutebrowser's web_history module,
+    # so nothing new persists or re-implements storage.
+    def _history_url_title(self, entry):
+        """Give a stable (url, title) string pair for a history entry."""
+        url = entry.url
+        urlstr = url.toString() if hasattr(url, 'toString') else str(url)
+        title = getattr(entry, 'title', None) or urlstr
+        return urlstr, title
+
+    def _populate_history_menu(self):
+        menu = self.history_menu
+        menu.clear()
+
+        try:
+            import time
+            from qutebrowser.browser import history as hist_module
+            web_history = hist_module.web_history
+        except Exception:
+            web_history = None
+
+        if web_history is None:
+            item = menu.addAction("History unavailable")
+            item.setEnabled(False)
+            return
+
+        try:
+            entries = web_history.entries_before(
+                int(time.time()), limit=30)
+        except Exception:
+            entries = []
+
+        seen = set()
+        added = 0
+        for entry in entries:
+            if added >= 30:
+                break
+            try:
+                urlstr, title = self._history_url_title(entry)
+            except Exception:
+                continue
+            if urlstr in seen or not urlstr:
+                continue
+            seen.add(urlstr)
+            action = menu.addAction(title)
+            action.setToolTip(urlstr)
+            action.triggered.connect(
+                lambda _checked=False, u=urlstr:
+                self._open_history_url(u))
+            added += 1
+
+        if added == 0:
+            item = menu.addAction("No history entries")
+            item.setEnabled(False)
+
+    def _open_history_url(self, url):
+        cb = self.open_new_tab_callback
+        if cb is not None:
+            cb(url)
