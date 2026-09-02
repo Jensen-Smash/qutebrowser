@@ -71,7 +71,9 @@ class BrowserContainer(QWidget):
 
         # Keep the toolbar the same height as the tab row so both chrome rows
         # read as one uniform bar (Edge-like).
-        self.toolbar.setFixedHeight(row_height)
+        # 工具栏本体加高至 36px(比标签行高 4)，用于观察工具区内按钮的
+        # 余量跟垂直位置变化;标签行本身维持原高度。
+        self.toolbar.setFixedHeight(36)
         # 单元层为浅色条：顶行与工具栏共享同一浅背景,
         # 激活标签为纯白以与页面形成“相连”的 Edge 观感。
         bar_bg = '#eceff1'
