@@ -2,6 +2,7 @@ from qutebrowser.qt.widgets import (
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
+    QSizePolicy,
 )
 from qutebrowser.qt.core import Qt
 
@@ -50,6 +51,12 @@ class BrowserContainer(QWidget):
 
         row_layout.addWidget(self.tab_bar, 0)  # tabs sized by content, not stretched
         row_layout.addWidget(plus_button, 0, Qt.AlignmentFlag.AlignCenter)
+        # Explicitly stop the tab bar from absorbing the extra horizontal room
+        # into its own interior; the free space is then kept strictly to the
+        # right of the '+' button. This keeps '+' flush next to the last tab.
+        self.tab_bar.setSizePolicy(
+            QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+        row_layout.addStretch(1)
 
         # Keep this top row exactly as tall as the tab bar so that the
         # toolbar and page stack start right beneath it.
