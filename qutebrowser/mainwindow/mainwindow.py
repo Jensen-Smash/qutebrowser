@@ -255,6 +255,10 @@ class MainWindow(QWidget):
         self.status = bar.StatusBar(win_id=self.win_id,
                                     private=self.is_private,
                                     parent=self)
+        # 需求：默认隐藏状态栏（不占窗口底部）。Qt 布局会忽略隐藏空间，
+        # WebView 因此自然延伸到底部。若要命令/提示模式时仍可用，状态栏
+        # 可短暂自显，正常状态随时保持不占用。
+        self.status.hide()
 
         self._add_widgets()
         self._downloadview.show()
