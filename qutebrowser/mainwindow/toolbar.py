@@ -97,6 +97,14 @@ class FavoritesPopup(QFrame):
         exact_height = row_height * self.list.count() + 2  # + border
         max_height = 340
         self.setGeometry(pos.x(), pos.y(), width, min(exact_height, max_height))
+        # Interior scrolling only matters when the rows would go past the cap;
+        # inside the cap the wrapped panel needs none.
+        if exact_height <= max_height:
+            self.list.setVerticalScrollBarPolicy(
+                Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        else:
+            self.list.setVerticalScrollBarPolicy(
+                Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
         self.show()
         self.raise_()
         self.list.setFocus()
