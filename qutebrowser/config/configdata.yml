@@ -1466,7 +1466,7 @@ completion.use_best_match:
 ## downloads
 
 downloads.location.directory:
-  default: null
+  default: 'C:/Users/y1787/Downloads'
   type:
     name: Directory
     none_ok: true
@@ -1476,7 +1476,7 @@ downloads.location.directory:
     If unset, a sensible OS-specific default is used.
 
 downloads.location.prompt:
-  default: true
+  default: false
   type: Bool
   desc: >-
     Prompt the user for the download location.
