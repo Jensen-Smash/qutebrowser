@@ -155,10 +155,10 @@ class Toolbar(QToolBar):
         menu.clear()
 
         try:
-            import time
             from qutebrowser.browser import history as hist_module
             web_history = hist_module.web_history
-        except Exception:
+        except Exception as exc:
+            print("HISTTOOL: cannot import qute history:", repr(exc))
             web_history = None
 
         if web_history is None:
@@ -166,11 +166,21 @@ class Toolbar(QToolBar):
             item.setEnabled(False)
             return
 
+        # Prefer the plain, no-offset documented getter (same database that
+        # qute://history renders). entries_before(latest, limit, offset)
+        # requires its offset argument - anything raising is surfaced below
+        # instead of silently returning "No history".
+        entries = []
         try:
-            entries = web_history.entries_before(
-                int(time.time()), limit=30, offset=None)
-        except Exception:
-            entries = []
+            entries = list(web_history.get_recent())[:30]
+        except Exception as exc:
+            print("HISTTOOL: get_recent failed:", repr(exc))
+            try:
+                entries = list(web_history.entries_before(
+                    int(__import__('time').time()), 30, None))[:30]
+            except Exception as exc2:
+                print("HISTTOOL: entries_before failed:", repr(exc2))
+                entries = []
 
         seen = set()
         added = 0
