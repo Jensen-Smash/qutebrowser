@@ -35,6 +35,21 @@ class Toolbar(QToolBar):
         self.reload_callback = reload_callback
 
         self.url_bar = UrlBar()
+        # 直接给实例本地样式: 确保圆角不受任何祖先样式生效/覆盖影响。
+        self.url_bar.setStyleSheet("""
+            QLineEdit {
+                background-color: #ffffff;
+                border: 1px solid #d8dcdf;
+                border-radius: 16px;          /* half of 32px height = end caps */
+                color: #202124;
+                padding: 0 10px;
+                selection-background-color: #bcd8f8;
+                selection-color: #202124;
+            }
+            QLineEdit:focus {
+                border: 1px solid #8ab4f8;
+            }
+        """)
         self.url_bar.setPlaceholderText(
             "Search or enter address"
         )
