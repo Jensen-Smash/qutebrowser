@@ -238,6 +238,7 @@ class MainWindow(QWidget):
             back_callback=self.go_back,
             reload_callback=self.reload_page,
             open_new_tab_callback=self.open_url_new_tab,
+            bookmark_toggle_callback=self.toggle_bookmark_for_current,
             parent=self)
 
         self.browser_container = BrowserContainer(
@@ -435,6 +436,63 @@ class MainWindow(QWidget):
         qurl = QUrl(url)
         self.tabbed_browser.tabopen(url=qurl, background=False)
 
+    # ------------------------------------------------------------------ #
+    # Bookmarks (uses qutebrowser's existing BookmarkManager; no custom db)
+    def _bookmark_manager(self):
+        """Return the current bookmark manager (or None)."""
+        try:
+            return objreg.get('bookmark-manager')
+        except Exception:
+            return None
+
+    @staticmethod
+    def _bookmark_urlstr(qurl):
+        """Normalize a url the same way bookmark-manager keys entries."""
+        if qurl is None or not qurl.isValid():
+            return None
+        mask = (QUrl.UrlFormattingOption.RemovePassword |
+                QUrl.ComponentFormattingOption.FullyEncoded)
+        return qurl.toString(mask)
+
+    def toggle_bookmark_for_current(self):
+        """Star/un-star the current page using qutebrowser bookmarks."""
+        manager = self._bookmark_manager()
+        if manager is None:
+            return
+        try:
+            tab = self.tabbed_browser._current_tab()
+            url = tab.url()
+        except Exception:
+            return
+        urlstr = self._bookmark_urlstr(url)
+        if urlstr is None:
+            return
+        title = ''
+        try:
+            raw = tab.title()
+            if raw:
+                title = str(raw)
+        except Exception:
+            pass
+        try:
+            manager.add(url, title, toggle=True)
+        except Exception:
+            pass
+        self.refresh_bookmark_button_state()
+
+    def refresh_bookmark_button_state(self):
+        """Sync toolbar star with whether current url is a bookmark."""
+        manager = self._bookmark_manager()
+        saved = False
+        if manager is not None:
+            try:
+                tab = self.tabbed_browser._current_tab()
+                urlstr = self._bookmark_urlstr(tab.url())
+                saved = bool(urlstr and urlstr in manager.marks)
+            except Exception:
+                saved = False
+        self.toolbar._set_bookmarked(saved)
+
     def __repr__(self):
         return utils.get_repr(self)
 
@@ -533,6 +591,12 @@ class MainWindow(QWidget):
         # tool
         self.tabbed_browser.cur_url_changed.connect(self._update_url_bar)
         self.tabbed_browser.cur_url_changed.connect(lambda _: self.update_navigation_buttons())
+        # bookmark star: refresh when current url/label changes.
+        self.tabbed_browser.cur_url_changed.connect(
+            lambda _url: self.refresh_bookmark_button_state())
+        bm = self._bookmark_manager()
+        if bm is not None:
+            bm.changed.connect(self.refresh_bookmark_button_state)
 
         # misc
         self._prompt_container.release_focus.connect(

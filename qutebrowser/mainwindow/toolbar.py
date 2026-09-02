@@ -18,7 +18,8 @@ class UrlBar(QLineEdit):
 class Toolbar(QToolBar):
 
     def __init__(self, navigate_callback, back_callback, reload_callback,
-                 open_new_tab_callback=None, parent=None):
+                 open_new_tab_callback=None, bookmark_toggle_callback=None,
+                 parent=None):
         super().__init__(parent)
 
         self.navigate_callback = navigate_callback
@@ -26,6 +27,7 @@ class Toolbar(QToolBar):
         self.reload_button = QPushButton("⟳")
 
         self.open_new_tab_callback = open_new_tab_callback
+        self.bookmark_toggle_callback = bookmark_toggle_callback
         self.back_callback = back_callback
         self.reload_callback = reload_callback
 
@@ -51,6 +53,46 @@ class Toolbar(QToolBar):
         self.back_button.setFixedHeight(content_h)
         self.reload_button.setFixedHeight(content_h)
         self.url_bar.setFixedHeight(content_h)
+
+        # --- 收藏：星标按钮 + 收藏夹下拉；显示在地址栏右侧(历史仍居最右) --
+        self.bookmark_button = QToolButton(self)
+        self.bookmark_button.setToolTip("收藏当前页面")
+        self.bookmark_button.setFixedHeight(content_h)
+        self.bookmark_button.setText("☆")
+        self._set_bookmarked(False)
+
+        self.bookmarks_button = QToolButton(self)
+        self.bookmarks_button.setToolTip("收藏夹")
+        self.bookmarks_button.setText("收藏夹")
+        self.bookmarks_button.setFixedHeight(content_h)
+
+        self.bookmarks_menu = QMenu(self)
+        self.bookmarks_button.setMenu(self.bookmarks_menu)
+        self.bookmarks_button.setPopupMode(
+            QToolButton.ToolButtonPopupMode.InstantPopup)
+        self.bookmarks_menu.aboutToShow.connect(self._populate_bookmarks_menu)
+
+        for btn in (self.bookmark_button, self.bookmarks_button):
+            btn.setStyleSheet("""
+                QToolButton {
+                    background: transparent;
+                    border: none;
+                    color: #202124;
+                    padding: 0 4px;
+                    font-size: 13px;
+                }
+                QToolButton:hover {
+                    background: #d8dcdf;
+                }
+                QToolButton:pressed {
+                    background: #c5c9cc;
+                }
+            """)
+
+        self.bookmark_button.clicked.connect(self._toggle_bookmark)
+
+        self.addWidget(self.bookmark_button)
+        self.addWidget(self.bookmarks_button)
 
         # --- 历史记录按钮(弹出最近历史的下拉列) ---------------------------
         self.history_button = QToolButton(self)
@@ -200,3 +242,47 @@ class Toolbar(QToolBar):
         cb = self.open_new_tab_callback
         if cb is not None:
             cb(url)
+
+    # ------------------------------------------------------------------ #
+    # Bookmarks: star a page (uses qutebrowser bookmark-manager via a main
+    # window callback) and a "Favourites" dropdown list.
+    def _set_bookmarked(self, is_saved):
+        """Update the star glyph to represent whether current url is saved."""
+        self._bookmarked = bool(is_saved)
+        self.bookmark_button.setText("★" if self._bookmarked else "☆")
+        self.bookmark_button.setToolTip(
+            "取消收藏" if self._bookmarked else "收藏当前页面")
+
+    def _toggle_bookmark(self):
+        """Delegate toggling of the current page bookmark to main window."""
+        cb = self.bookmark_toggle_callback
+        if cb is not None:
+            cb()
+
+    def _populate_bookmarks_menu(self):
+        menu = self.bookmarks_menu
+        menu.clear()
+        try:
+            from qutebrowser.utils import objreg
+            manager = objreg.get('bookmark-manager')
+        except Exception:
+            manager = None
+
+        if manager is None:
+            item = menu.addAction("Bookmarks unavailable")
+            item.setEnabled(False)
+            return
+
+        for urlstr, title in manager.marks.items():
+            label = title if title else urlstr
+            if title and urlstr != title:
+                label = f"{title} — {urlstr}"
+            action = menu.addAction(label)
+            action.setToolTip(urlstr)
+            action.triggered.connect(
+                lambda _checked=False, u=urlstr:
+                self.navigate_callback(u) if self.navigate_callback else None)
+
+        if menu.isEmpty():
+            item = menu.addAction("No bookmarks yet")
+            item.setEnabled(False)
