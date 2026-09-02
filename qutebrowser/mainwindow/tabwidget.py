@@ -24,7 +24,7 @@ from qutebrowser.qt.widgets import (
     QCommonStyle,
     QToolButton,
 )
-from qutebrowser.qt.gui import QIcon, QPalette, QColor, QPainter
+from qutebrowser.qt.gui import QIcon, QPalette, QColor, QPainter, QPen
 
 from qutebrowser.utils import qtutils, objreg, utils, usertypes, log
 from qutebrowser.config import config, stylesheet
@@ -1044,8 +1044,9 @@ class TabBarStyle(QProxyStyle):
                 QPainter.RenderHint.Antialiasing
             )
 
-            # 当前标签和普通标签不同颜色 (浅色系 Edge 观感)
-            if opt.state & QStyle.StateFlag.State_Selected:
+            # 当前标签加黑色描边;未选中保持现状(无边框)
+            selected = bool(opt.state & QStyle.StateFlag.State_Selected)
+            if selected:
                 color = QColor("#ffffff")   # 激活标签: 纸白,与页面连续
             else:
                 color = QColor("#f1f3f4")   # 未激活: 顶条浅灰浮块
@@ -1053,8 +1054,12 @@ class TabBarStyle(QProxyStyle):
             # 设置填充颜色
             p.setBrush(color)
 
-            # 不画边框
-            p.setPen(Qt.PenStyle.NoPen)
+            if selected:
+                # 当前激活标签: 绘制 1px 黑色边框
+                pen = QPen(QColor("#000000"), 1)
+                p.setPen(pen)
+            else:
+                p.setPen(Qt.PenStyle.NoPen)
 
             # 绘制圆角矩形
             p.drawRoundedRect(
