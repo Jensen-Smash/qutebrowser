@@ -40,6 +40,13 @@ class Toolbar(QToolBar):
         self.addWidget(self.reload_button)
         self.addWidget(self.url_bar)
 
+        # 内容高 < 工具栏总高（toolbar 被容器固定为 32）：上下各留 ~2px，
+        # 使按钮与地址栏在栏内“比工具栏稍矮”，观感更饱满且居中。
+        content_h = 28
+        self.back_button.setFixedHeight(content_h)
+        self.reload_button.setFixedHeight(content_h)
+        self.url_bar.setFixedHeight(content_h)
+
         # 与浅色 Chrome 一致的工具条按钮(容器再以统一浅背景底色并齐)
         self.setStyleSheet("""
             QToolBar { background-color: transparent; border: none; }
@@ -49,7 +56,7 @@ class Toolbar(QToolBar):
                 color: #202124;
                 border: none;
                 border-radius: 6px;
-                padding: 3px 6px;
+                padding: 2px 6px;
                 font-size: 15px;
                 font-weight: bold;
             }
@@ -61,6 +68,19 @@ class Toolbar(QToolBar):
             }
             QToolBar QPushButton:disabled {
                 color: #a5a9ad;
+            }
+
+            QToolBar QLineEdit {
+                background-color: #ffffff;
+                border: 1px solid #d8dcdf;
+                border-radius: 7px;
+                color: #202124;
+                padding: 0 8px;
+                selection-background-color: #bcd8f8;
+                selection-color: #202124;
+            }
+            QToolBar QLineEdit:focus {
+                border-color: #8ab4f8;
             }
         """)
 
