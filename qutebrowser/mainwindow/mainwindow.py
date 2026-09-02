@@ -28,7 +28,8 @@ from qutebrowser.keyinput import modeman
 from qutebrowser.browser import downloadview, hints, downloads
 from qutebrowser.misc import crashsignal, keyhintwidget, sessions, objects
 from qutebrowser.qt import sip
-
+from qutebrowser.mainwindow import toolbar
+from qutebrowser.qt.core import QUrl
 
 win_id_gen = itertools.count(0)
 
@@ -229,6 +230,13 @@ class MainWindow(QWidget):
             win_id=self.win_id, private=self.is_private, parent=self)
         objreg.register('tabbed-browser', self.tabbed_browser, scope='window',
                         window=self.win_id)
+
+        self.toolbar = toolbar.Toolbar(
+            navigate_callback=self.navigate,
+            back_callback=self.go_back,
+            reload_callback=self.reload_page,
+            parent=self)
+        
         self._init_command_dispatcher()
 
         # We need to set an explicit parent for StatusBar because it does some
@@ -258,6 +266,7 @@ class MainWindow(QWidget):
                           centered=True, padding=10)
         objreg.register('prompt-container', self._prompt_container,
                         scope='window', window=self.win_id, command_only=True)
+        
         self._prompt_container.hide()
 
         self._messageview = messageview.MessageView(parent=self)
@@ -350,6 +359,12 @@ class MainWindow(QWidget):
         if rect.isValid():
             widget.setGeometry(rect)
 
+    def _update_url_bar(self, url):
+
+        self.toolbar.set_url(
+            url.toString()
+        )
+
     def _init_downloadmanager(self):
         log.init.debug("Initializing downloads...")
         qtnetwork_download_manager = objreg.get('qtnetwork-download-manager')
@@ -394,8 +409,24 @@ class MainWindow(QWidget):
             functools.partial(objreg.delete, 'command-dispatcher',
                               scope='window', window=self.win_id))
 
+    def go_back(self):
+        tab = self.tabbed_browser._current_tab()
+        tab.history.back()
+
+    def reload_page(self):
+        tab = self.tabbed_browser._current_tab()
+        tab.reload()
+
+    def navigate(self, url):
+        qurl = QUrl(url)
+        self.tabbed_browser.load_url(qurl,newtab=False)
+
     def __repr__(self):
         return utils.get_repr(self)
+
+    def update_navigation_buttons(self):
+        tab = self.tabbed_browser._current_tab()
+        self.toolbar.set_back_enabled(tab.history.can_go_back())
 
     @pyqtSlot(str)
     def _on_config_changed(self, option):
@@ -415,7 +446,8 @@ class MainWindow(QWidget):
         self._vbox.removeWidget(self.tabbed_browser.widget)
         self._vbox.removeWidget(self._downloadview)
         self._vbox.removeWidget(self.status)
-        widgets: list[QWidget] = [self.tabbed_browser.widget]
+        self._vbox.removeWidget(self.toolbar)
+        widgets: list[QWidget] = [self.toolbar,self.tabbed_browser.widget]
 
         downloads_position = config.val.downloads.position
         if downloads_position == 'top':
@@ -482,6 +514,10 @@ class MainWindow(QWidget):
     def _connect_signals(self):
         """Connect all mainwindow signals."""
         mode_manager = modeman.instance(self.win_id)
+
+        # tool
+        self.tabbed_browser.cur_url_changed.connect(self._update_url_bar)
+        self.tabbed_browser.cur_url_changed.connect(lambda _: self.update_navigation_buttons())
 
         # misc
         self._prompt_container.release_focus.connect(

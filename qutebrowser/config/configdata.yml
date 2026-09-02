@@ -2625,7 +2625,7 @@ url.start_pages:
   type:
     name: ListOrValue
     valtype: FuzzyUrl
-  default: ["https://start.duckduckgo.com"]
+  default: ["https://www.baidu.com/"]
   desc: Page(s) to open at the start.
 
 url.yank_ignored_parameters:
