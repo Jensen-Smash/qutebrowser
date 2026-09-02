@@ -91,10 +91,12 @@ class FavoritesPopup(QFrame):
         self.setMinimumWidth(width)
         pos = anchor_button.mapToGlobal(anchor_button.rect().bottomLeft())
         # Height wraps exactly the current number of entries (one non-empty
-        # placeholder row when empty). No default/minimum height is added.
+        # placeholder row when empty) but never exceeds max_height: beyond
+        # that the embedded list scrolls internally instead.
         row_height = self.list.fontMetrics().height() + 8
         exact_height = row_height * self.list.count() + 2  # + border
-        self.setGeometry(pos.x(), pos.y(), width, exact_height)
+        max_height = 340
+        self.setGeometry(pos.x(), pos.y(), width, min(exact_height, max_height))
         self.show()
         self.raise_()
         self.list.setFocus()
