@@ -89,11 +89,6 @@ class TabWidget(QWidget):
         # Edge-style TabRow; we merely create them on a plain widget
         # (parents=self) and expose them via tabBar()/plus_button so the page
         # container never renders a duplicate tab bar.
-        self._bar.setTabsClosable(True)
-        self._bar.setDrawBase(False)
-        self._bar.setMovable(True)
-        self._bar.setUsesScrollButtons(True)
-        self._bar.setElideMode(Qt.TextElideMode.ElideRight)
 
         # Our own visible content is just the page stack.
         layout.addWidget(self._stack, 1)

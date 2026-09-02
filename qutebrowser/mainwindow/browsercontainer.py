@@ -49,9 +49,16 @@ class BrowserContainer(QWidget):
         row_layout.addWidget(self.tab_bar, 1)
         row_layout.addWidget(plus_button, 0, Qt.AlignmentFlag.AlignCenter)
 
-        # Keep this top row exactly as tall as the tab bar (34px) so that the
+        # Keep this top row exactly as tall as the tab bar so that the
         # toolbar and page stack start right beneath it.
-        self.tab_row.setFixedHeight(int(self.tab_bar.sizeHint().height()))
+        #
+        # NOTE: an (empty) QTabBar's sizeHint().height() is 0 — using it here
+        # would collapse the whole top row.  Use the widget's minimumHeight
+        # instead, which is 34 (TabBar calls setFixedHeight(34)).
+        row_height = self.tab_bar.minimumHeight()
+        if row_height <= 0:
+            row_height = 34
+        self.tab_row.setFixedHeight(row_height)
 
         self._layout.addWidget(self.tab_row)
         self._layout.addWidget(self.toolbar)
