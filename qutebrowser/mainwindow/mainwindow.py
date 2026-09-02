@@ -241,6 +241,7 @@ class MainWindow(QWidget):
 
         self.browser_container = BrowserContainer(
             self.toolbar,
+            self.tabbed_browser.widget,
             parent=self
 )
         
@@ -450,11 +451,12 @@ class MainWindow(QWidget):
 
     def _add_widgets(self):
         """Add or re-add all widgets to the VBox."""
-        self._vbox.removeWidget(self.tabbed_browser.widget)
         self._vbox.removeWidget(self._downloadview)
         self._vbox.removeWidget(self.status)
-        self._vbox.removeWidget(self.toolbar)
-        widgets: list[QWidget] = [self.browser_container,self.tabbed_browser.widget]
+        # browser_container holds [TabRow | Toolbar | tabs]; it is always
+        # present, status/download are ordered above/below per config.
+        self._vbox.removeWidget(self.browser_container)
+        widgets: list[QWidget] = [self.browser_container]
 
         downloads_position = config.val.downloads.position
         if downloads_position == 'top':

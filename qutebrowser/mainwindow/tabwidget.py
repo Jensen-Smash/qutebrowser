@@ -12,8 +12,10 @@ from typing import Optional, Any
 from qutebrowser.qt.core import (pyqtSignal, pyqtSlot, Qt, QSize, QRect, QPoint,
                           QTimer, QUrl)
 from qutebrowser.qt.widgets import (
-    QTabWidget,
+    QWidget,
     QTabBar,
+    QStackedWidget,
+    QVBoxLayout,
     QSizePolicy,
     QProxyStyle,
     QStyle,
@@ -30,19 +32,30 @@ from qutebrowser.misc import objects, debugcachestats
 from qutebrowser.browser import browsertab
 
 
-class TabWidget(QTabWidget):
+class TabWidget(QWidget):
 
     """The tab widget used for TabbedBrowser.
+
+    Holds a QStackedWidget of browser tabs plus a TabBar.  The TabBar is kept
+    as the first child of our layout in this file so the behaviour stays
+    equivalent to a QTabWidget tab bar on the top; BrowserContainer reparents
+    it into the top Edge-style row later.
 
     Signals:
         tab_index_changed: Emitted when the current tab was changed.
                            arg 0: The index of the tab which is now focused.
                            arg 1: The total count of tabs.
         new_tab_requested: Emitted when a new tab is requested.
+        tabCloseRequested: Emitted when a tab close was requested.
+                           arg: The index of the tab.
+        currentChanged: Emitted when the current tab was changed.
+                        arg: The index of the now-current tab.
     """
 
     tab_index_changed = pyqtSignal(int, int)
     new_tab_requested = pyqtSignal('QUrl', bool, bool)
+    tabCloseRequested = pyqtSignal(int)
+    currentChanged = pyqtSignal(int)
 
     # Strings for controlling the mute/audible text
     MUTE_STRING = '[M] '
@@ -51,18 +64,45 @@ class TabWidget(QTabWidget):
     def __init__(self, win_id, parent=None):
         super().__init__(parent)
 
-        bar = TabBar(win_id, self)
+        # Page stack holding the actual browser tabs (each parented to us).
+        self._stack = QStackedWidget(self)
+
+        # Tab bar.  Owned here for now so that a plain TabWidget still looks
+        # like a QTabWidget with the bar on top; BrowserContainer reparents it
+        # out into the Edge-style top row later.
+        self._bar = TabBar(win_id, tab_widget=self, parent=self)
 
         self.setStyle(TabBarStyle())
-        self.setTabBar(bar)
 
-        self.setTabsClosable(True)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
 
-        # 添加新建标签按钮
+        self._bar.setTabsClosable(True)
+        self._bar.setDrawBase(False)
+        self._bar.setMovable(True)
+        self._bar.setUsesScrollButtons(True)
+        self._bar.setElideMode(Qt.TextElideMode.ElideRight)
+
+        # NOTE: the TabBar and the "+" button are *not* inserted into our own
+        # layout.  They get reparented by BrowserContainer into the top
+        # Edge-style TabRow; we merely create them on a plain widget
+        # (parents=self) and expose them via tabBar()/plus_button so the page
+        # container never renders a duplicate tab bar.
+        self._bar.setTabsClosable(True)
+        self._bar.setDrawBase(False)
+        self._bar.setMovable(True)
+        self._bar.setUsesScrollButtons(True)
+        self._bar.setElideMode(Qt.TextElideMode.ElideRight)
+
+        # Our own visible content is just the page stack.
+        layout.addWidget(self._stack, 1)
+
+        # Corner "new tab" (+) button (created as a plain child for the top
+        # TabRow; see note above).
         self.plus_button = QToolButton(self)
         self.plus_button.setText("+")
         self.plus_button.setFixedSize(30, 30)
-
         self.plus_button.setStyleSheet("""
             QToolButton {
                 background: #202124;
@@ -80,46 +120,24 @@ class TabWidget(QTabWidget):
             }
             """)
 
-        self.plus_button.clicked.connect(
-            bar.new_tab_requested.emit
-        )
-
-        self.setCornerWidget(
-            self.plus_button,
-            Qt.Corner.TopRightCorner
-        )
+        self.plus_button.clicked.connect(self._bar.new_tab_requested.emit)
 
         # 标签关闭事件
-        bar.tabCloseRequested.connect(
-            self.tabCloseRequested
-        )
+        self._bar.tabCloseRequested.connect(self.tabCloseRequested.emit)
 
         # 标签移动
-        bar.tabMoved.connect(functools.partial(
-            QTimer.singleShot,
-            0,
-            self.update_tab_titles
-        ))
+        self._bar.tabMoved.connect(self._on_tab_moved)
 
         # 当前标签变化
-        bar.currentChanged.connect(
-            self._on_current_changed
-        )
+        self._bar.currentChanged.connect(self._on_current_changed)
 
         # 新建标签
-        bar.new_tab_requested.connect(
-            self._on_new_tab_requested
-        )
+        self._bar.new_tab_requested.connect(self._on_new_tab_requested)
 
         self.setSizePolicy(
             QSizePolicy.Policy.Expanding,
-            QSizePolicy.Policy.Fixed
+            QSizePolicy.Policy.Expanding
         )
-
-        self.setDocumentMode(True)
-        self.setUsesScrollButtons(True)
-
-        bar.setDrawBase(False)
 
         self._init_config()
         config.instance.changed.connect(
@@ -129,24 +147,56 @@ class TabWidget(QTabWidget):
     @config.change_filter('tabs')
     def _init_config(self):
         """Initialize attributes based on the config."""
-        self.setMovable(True)
-        self.setTabsClosable(True)
-        position = config.val.tabs.position
+        bar = self._bar
+        bar.setMovable(True)
+        bar.setTabsClosable(True)
         selection_behavior = config.val.tabs.select_on_remove
-        self.setTabPosition(position)
-        self.setElideMode(config.val.tabs.title.elide)
-
-        tabbar = self.tab_bar()
-        tabbar.vertical = position in [
-            QTabWidget.TabPosition.West, QTabWidget.TabPosition.East]
-        tabbar.setSelectionBehaviorOnRemove(selection_behavior)
-        tabbar.refresh()
+        bar.setSelectionBehaviorOnRemove(selection_behavior)
+        bar.setElideMode(config.val.tabs.title.elide)
+        # Edge-style layout: the tab bar always lives on the top.  The
+        # horizontal/vertical handling from upstream no longer applies here,
+        # so `position` is intentionally ignored.
+        self._bar.refresh()
 
     def tab_bar(self) -> "TabBar":
         """Get the TabBar for this TabWidget."""
-        bar = self.tabBar()
-        assert isinstance(bar, TabBar), bar
-        return bar
+        return self.tabBar()
+
+    def tabBar(self) -> "TabBar":
+        """Get the TabBar for this TabWidget (QTabWidget-compatible API)."""
+        assert self._bar is not None
+        return self._bar
+
+    # -- QTabWidget-compatible page-stack API (delegated to self._stack) ----
+    def count(self) -> int:
+        """Return the number of tabs (QTabWidget-compatible)."""
+        return self._stack.count()
+
+    def currentIndex(self) -> int:
+        """Return the index of the current tab (QTabWidget-compatible)."""
+        return self._stack.currentIndex()
+
+    def currentWidget(self) -> Optional[QWidget]:
+        """Return the current tab widget (QTabWidget-compatible)."""
+        return self._stack.currentWidget()
+
+    def widget(self, index: int) -> Optional[QWidget]:
+        """Return the tab widget at the given index (QTabWidget-compatible)."""
+        return self._stack.widget(index)
+
+    def indexOf(self, w: QWidget) -> int:
+        """Return the index of the given tab widget (QTabWidget-compatible)."""
+        return self._stack.indexOf(w)
+
+    def setCurrentIndex(self, index: int) -> None:
+        """Set the current tab by index (QTabWidget-compatible)."""
+        self._stack.setCurrentIndex(index)
+        self._bar.setCurrentIndex(index)
+
+    def setCurrentWidget(self, w: QWidget) -> None:
+        """Set the current tab by widget (QTabWidget-compatible)."""
+        self._stack.setCurrentWidget(w)
+        self._bar.setCurrentIndex(self._stack.indexOf(w))
 
     def _tab_by_idx(self, idx: int) -> Optional[browsertab.AbstractTab]:
         """Get the tab at the given index."""
@@ -313,78 +363,97 @@ class TabWidget(QTabWidget):
             for idx in range(self.count()):
                 self.update_tab_title(idx)
 
-    def tabInserted(self, idx):
-        """Update titles when a tab was inserted."""
-        super().tabInserted(idx)
-        self.update_tab_titles()
-
-    def tabRemoved(self, idx):
-        """Update titles when a tab was removed."""
-        super().tabRemoved(idx)
-        self.update_tab_titles()
-
     def addTab(self, page, icon_or_text, text_or_empty=None):
-        """Override addTab to use our own text setting logic.
+        """Add a tab to the end (QTabWidget-compatible signature).
 
-        Unfortunately QTabWidget::addTab has these two overloads:
-            - QWidget * page, const QIcon & icon, const QString & label
-            - QWidget * page, const QString & label
-
-        This means we'll get different arguments based on the chosen overload.
-
-        Args:
-            page: The QWidget to add.
-            icon_or_text: Either the QIcon to add or the label.
-            text_or_empty: Either the label or None.
+        Overloads:
+            - addTab(QWidget * page, const QString & label)
+            - addTab(QWidget * page, const QIcon & icon, const QString & label)
 
         Return:
             The index of the newly added tab.
         """
-        if text_or_empty is None:
-            text = icon_or_text
-            new_idx = super().addTab(page, '')
+        if self.count() == 0:
+            idx = 0
         else:
-            icon = icon_or_text
-            text = text_or_empty
-            new_idx = super().addTab(page, icon, '')
-        self.set_page_title(new_idx, text)
-        return new_idx
+            idx = self.count()
+        return self._insert_tab(idx, page, icon_or_text, text_or_empty)
 
     def insertTab(self, idx, page, icon_or_text, text_or_empty=None):
-        """Override insertTab to use our own text setting logic.
+        """Insert a tab at the given index (QTabWidget-compatible signature).
 
-        Unfortunately QTabWidget::insertTab has these two overloads:
-            - int index, QWidget * page, const QIcon & icon,
-              const QString & label
-            - int index, QWidget * page, const QString & label
-
-        This means we'll get different arguments based on the chosen overload.
-
-        Args:
-            idx: Where to insert the widget.
-            page: The QWidget to add.
-            icon_or_text: Either the QIcon to add or the label.
-            text_or_empty: Either the label or None.
+        Overloads:
+            - insertTab(int, QWidget * page, const QString & label)
+            - insertTab(int, QWidget * page, const QIcon & icon,
+                        const QString & label)
 
         Return:
             The index of the newly added tab.
         """
+        return self._insert_tab(idx, page, icon_or_text, text_or_empty)
+
+    def removeTab(self, index: int) -> None:
+        """Remove the tab at the given index (QTabWidget-compatible)."""
+        widget = self._stack.widget(index)
+        if widget is not None:
+            self._stack.removeWidget(widget)
+        self._bar.removeTab(index)
+        self.update_tab_titles()
+
+    def _insert_tab(self, idx, page, icon_or_text, text_or_empty=None):
+        """Shared implementation of addTab/insertTab over the stack + bar.
+
+        Keeps the tab count and ordering of the page-stack and the tab bar
+        in sync and records the page title/tab tooltip afterwards.
+
+        A negative/oversized idx (as in a QTabWidget::insertTab) means
+        "append at the end".
+        """
         if text_or_empty is None:
             text = icon_or_text
-            new_idx = super().insertTab(idx, page, '')
+            icon = None
         else:
             icon = icon_or_text
             text = text_or_empty
-            new_idx = super().insertTab(idx, page, icon, '')
-        self.set_page_title(new_idx, text)
-        return new_idx
+
+        if not 0 <= idx <= self._stack.count():
+            idx = self._stack.count()
+
+        self._stack.insertWidget(idx, page)
+        if icon is not None:
+            self._bar.insertTab(idx, icon, '')
+        else:
+            self._bar.insertTab(idx, '')
+
+        self.set_page_title(idx, text)
+        # Keep the selection model in sync (a QTabWidget shows the newly
+        # inserted page only if the stack had no page or this call refocuses).
+        if self.count() == 1 and self._stack.currentIndex() != 0:
+            self.setCurrentIndex(0)
+        self.update_tab_titles()
+        return idx
+
+    def _on_tab_moved(self, _from: int, to: int) -> None:
+        """Keep the page stack in sync when the user drags a tab."""
+        widget = self._stack.widget(_from)
+        if widget is None:
+            return
+        self._stack.removeWidget(widget)
+        self._stack.insertWidget(min(to, self._stack.count()), widget)
+        self.update_tab_titles()
 
     @pyqtSlot(int)
     def _on_current_changed(self, index):
-        """Emit the tab_index_changed signal if the current tab changed."""
+        """React to the tab bar changing the current tab.
+
+        Keeps the page stack in sync and emits the QTabWidget-compatible
+        signals (tab_index_changed / currentChanged).
+        """
+        self._stack.setCurrentIndex(index)
         self.tab_bar().on_current_changed()
         self.update_tab_titles()
         self.tab_index_changed.emit(index, self.count())
+        self.currentChanged.emit(index)
 
     @pyqtSlot()
     def _on_new_tab_requested(self):
@@ -426,7 +495,7 @@ class TabWidget(QTabWidget):
             style = self.style()
             assert style is not None
             icon = style.standardIcon(QStyle.StandardPixmap.SP_FileIcon)
-        super().setTabIcon(idx, icon)
+        self.tab_bar().setTabIcon(idx, icon)
 
 
 class TabBar(QTabBar):
@@ -460,12 +529,13 @@ class TabBar(QTabBar):
 
     new_tab_requested = pyqtSignal()
 
-    def __init__(self, win_id, parent=None):
+    def __init__(self, win_id, tab_widget, parent=None):
         super().__init__(parent)
 
         self.setFixedHeight(34)
 
         self._win_id = win_id
+        self._owner_tab_widget = tab_widget
 
         self._our_style = TabBarStyle()
         self.setStyle(self._our_style)
@@ -501,10 +571,15 @@ class TabBar(QTabBar):
         return utils.get_repr(self, count=self.count())
 
     def _tab_widget(self):
-        """Get the TabWidget we're in."""
-        parent = self.parent()
-        assert isinstance(parent, TabWidget), parent
-        return parent
+        """Get the TabWidget this tab bar belongs to."""
+        # Kept as an explicit owner reference rather than deriving from
+        # parent() so that BrowserContainer can reparent this bar into the
+        # top Edge-style row without breaking the parent-widget lookup.
+        if self._owner_tab_widget is None:
+            parent = self.parent()
+            assert isinstance(parent, TabWidget), parent
+            return parent
+        return self._owner_tab_widget
 
     def _current_tab(self):
         """Get the current tab object."""
@@ -549,7 +624,17 @@ class TabBar(QTabBar):
 
     @pyqtSlot()
     def maybe_hide(self):
-        """Hide the tab bar if needed."""
+        """Hide the tab bar if needed.
+
+        .. note:: The Edge-style top layout (see BrowserContainer) forces the
+           bar to stay visible, so this switches to just *showing* it.  The
+           conditional auto-hide logic from upstream is retained below only as
+           documentation and for when someone shows a plain TabWidget on its
+           own.
+        """
+        if getattr(self, '_edge_always_visible', False):
+            self.show()
+            return
         show = config.val.tabs.show
         tab = self._current_tab()
         if (show in ['never', 'switching'] or
@@ -1113,9 +1198,10 @@ class TabBarStyle(QProxyStyle):
         icon_state = (QIcon.State.On if opt.state & QStyle.StateFlag.State_Selected
                       else QIcon.State.Off)
         # reserve space for favicon when tab bar is vertical (issue #1968)
-        position = config.cache['tabs.position']
-        if (position in [QTabWidget.TabPosition.East, QTabWidget.TabPosition.West] and
-                config.cache['tabs.favicons.show'] != 'never'):
+        # (kept deterministic; vertical position is never active in the
+        # Edge-style top layout)
+        if config.cache['tabs.favicons.show'] != 'never' and \
+                config.cache['tabs.position'] in ('left', 'right'):
             tab_icon_size = icon_size
         else:
             actual_size = opt.icon.actualSize(icon_size, icon_mode, icon_state)
