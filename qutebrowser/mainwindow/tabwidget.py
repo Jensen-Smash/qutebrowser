@@ -832,10 +832,12 @@ class TabBar(QTabBar):
                 # titles, let Qt handle scaling it down if we get too small.
                 width = self.minimumTabSizeHint(index, ellipsis=False).width()
             else:
-                # Request as much space as possible so we fill the tabbar, let
-                # Qt shrink us down. If for some reason (tests, bugs)
-                # self.width() gives 0, use a sane min of 10 px
-                width = max(self.width(), 10)
+                # Edge-flavored horizontal sizing: a lone tab must NOT swallow
+                # the whole bar. Every tab requests a comfortable fixed-ish
+                # width (~180px); when real estate is tight Qt shrinks tabs
+                # uniformly (ellipsis handles long titles). User's explicit
+                # max_width still caps this if configured.
+                width = 180
                 max_width = config.cache['tabs.max_width']
                 if max_width > 0:
                     width = min(max_width, width)

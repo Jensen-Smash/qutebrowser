@@ -48,7 +48,7 @@ class BrowserContainer(QWidget):
         # it to the row layout re-parents it (exactly once) into tab_row.
         plus_button = self.tabs.plus_button
 
-        row_layout.addWidget(self.tab_bar, 1)
+        row_layout.addWidget(self.tab_bar, 0)  # tabs sized by content, not stretched
         row_layout.addWidget(plus_button, 0, Qt.AlignmentFlag.AlignCenter)
 
         # Keep this top row exactly as tall as the tab bar so that the
