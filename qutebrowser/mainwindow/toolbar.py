@@ -5,15 +5,159 @@ from qutebrowser.qt.widgets import (
     QToolButton,
     QMenu,
     QStyle,
+    QFrame,
+    QListWidget,
+    QListWidgetItem,
+    QInputDialog,
+    QVBoxLayout,
 )
 
-from qutebrowser.qt.core import QUrl, QSize
+from qutebrowser.qt.core import QUrl, QSize, Qt
 
 class UrlBar(QLineEdit):
 
     def mousePressEvent(self, event):
         super().mousePressEvent(event)
         self.selectAll()
+
+def _bookmarks_manager():
+    """Return the active BookmarkManager (already registered by qutebrowser)."""
+    try:
+        from qutebrowser.utils import objreg
+        return objreg.get('bookmark-manager')
+    except Exception:
+        return None
+
+
+class FavoritesPopup(QFrame):
+    """Row-based favourites list used in place of a plain QMenu.
+
+    Left click opens in the current tab; right-click an entry shows a context
+    menu:  New tab / Rename / Delete.
+    """
+
+    def __init__(self, toolbar, parent=None):
+        super().__init__(parent, Qt.WindowType.Popup)
+        self.setObjectName('favorites_popup')
+        self.setWindowFlags(self.windowFlags() | Qt.WindowType.FramelessWindowHint)
+
+        self.toolbar = toolbar
+        vbox = QVBoxLayout(self)
+        vbox.setContentsMargins(0, 0, 0, 0)
+        vbox.setSpacing(0)
+
+        self.list = QListWidget(self)
+        self.list.setUniformItemSizes(True)
+        self.list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.list.itemClicked.connect(self._open_current)
+        self.list.setContextMenuPolicy(
+            Qt.ContextMenuPolicy.CustomContextMenu)
+        self.list.customContextMenuRequested.connect(self._show_context)
+        vbox.addWidget(self.list)
+
+        self.setStyleSheet("""
+            QListWidget { background: #ffffff; border: 1px solid #d8dcdf;
+                          border-radius: 4px; }
+            QListWidget::item { padding: 3px 8px; color: #202124; }
+            QListWidget::item:hover { background: #eceff1; }
+        """)
+
+    # -- helpers ----------------------------------------------------------
+    def _display(self, urlstr, title):
+        if title and title != urlstr:
+            return f"{title} — {urlstr}"
+        return urlstr
+
+    def _refresh(self):
+        """(Re)build rows from the manager, keeping current visible."""
+        manager = _bookmarks_manager()
+        self.list.clear()
+        if manager is None:
+            return
+        for urlstr, title in manager.marks.items():
+            item = QListWidgetItem(self._display(urlstr, title), self.list)
+            item.setToolTip(urlstr)
+            item.setData(Qt.ItemDataRole.UserRole, urlstr)
+            item.setData(Qt.ItemDataRole.UserRole + 1, title)
+
+    def show_at(self, anchor_button):
+        """Re-fill and show popup just under the given toolbar button."""
+        self._refresh()
+        self.adjustSize()
+        width = max(self.toolbar.bookmarks_button.width(), 280)
+        self.setMinimumWidth(width)
+        pos = anchor_button.mapToGlobal(anchor_button.rect().bottomLeft())
+        self.setGeometry(pos.x(), pos.y(), width, min(max(self.list.sizeHint().height(), 60), 340))
+        self.show()
+        self.raise_()
+        self.list.setFocus()
+
+    # -- item behaviours --------------------------------------------------
+    def _entry(self, item):
+        url = item.data(Qt.ItemDataRole.UserRole)
+        title = item.data(Qt.ItemDataRole.UserRole + 1)
+        return url, title
+
+    def _open_current(self, item):
+        url, _ = self._entry(item)
+        self.hide()
+        cb = self.toolbar.navigate_callback
+        if cb is not None and url:
+            cb(url)
+
+    def _show_context(self, pos):
+        item = self.list.itemAt(pos)
+        if item is None:
+            return
+        url, title = self._entry(item)
+        menu = QMenu(self)
+        act_new = menu.addAction("在新标签页打开")
+        act_rename = menu.addAction("重命名")
+        act_del = menu.addAction("删除")
+        chosen = menu.exec(self.list.viewport().mapToGlobal(pos))
+        if chosen is act_new:
+            self.hide()
+            cb = self.toolbar.open_new_tab_callback
+            if cb is not None and url:
+                cb(url)
+        elif chosen is act_rename:
+            self._rename(url, title)
+        elif chosen is act_del:
+            self._delete(url)
+
+    def _rename(self, url, old_title):
+        new_title, ok = QInputDialog.getText(
+            self, "重命名收藏", "书签标题:", text=old_title or '')
+        if not ok:
+            return
+        new_title = new_title.strip()
+        if not new_title or new_title == old_title:
+            return
+        manager = _bookmarks_manager()
+        if manager is None:
+            return
+        # Update only the title through the bookmark manager interface.
+        manager.marks[url] = new_title
+        manager.changed.emit()
+        try:
+            manager.save()
+        except Exception:
+            pass
+        self._refresh()
+        self.show()
+
+    def _delete(self, url):
+        manager = _bookmarks_manager()
+        if manager is None:
+            return
+        if url in manager.marks:
+            try:
+                manager.delete(url)
+            except Exception:
+                pass
+        self._refresh()
+        self.show()
+
 
 class Toolbar(QToolBar):
 
@@ -66,11 +210,8 @@ class Toolbar(QToolBar):
         self.bookmarks_button.setText("收藏夹")
         self.bookmarks_button.setFixedHeight(content_h)
 
-        self.bookmarks_menu = QMenu(self)
-        self.bookmarks_button.setMenu(self.bookmarks_menu)
-        self.bookmarks_button.setPopupMode(
-            QToolButton.ToolButtonPopupMode.InstantPopup)
-        self.bookmarks_menu.aboutToShow.connect(self._populate_bookmarks_menu)
+        self.favorites_pop = FavoritesPopup(self)
+        self.bookmarks_button.clicked.connect(self._toggle_favorites_popup)
 
         for btn in (self.bookmark_button, self.bookmarks_button):
             btn.setStyleSheet("""
@@ -257,6 +398,22 @@ class Toolbar(QToolBar):
         cb = self.bookmark_toggle_callback
         if cb is not None:
             cb()
+
+    def _toggle_favorites_popup(self):
+        """Show/hide the favourites list under the toolbar button."""
+        pop = self.favorites_pop
+        if pop.isVisible():
+            pop.hide()
+        else:
+            pop.show_at(self.bookmarks_button)
+
+    def toggle_favorites_popup(self, visible: bool = None):
+        """Programmatically show/hide (used by context actions)."""
+        pop = self.favorites_pop
+        if (visible is False) or (visible is None and pop.isVisible()):
+            pop.hide()
+        elif visible is True or not pop.isVisible():
+            pop.show_at(self.bookmarks_button)
 
     def _populate_bookmarks_menu(self):
         menu = self.bookmarks_menu
