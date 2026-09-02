@@ -89,7 +89,6 @@ class FavoritesPopup(QFrame):
         self.adjustSize()
         width = max(self.toolbar.bookmarks_button.width(), 280)
         self.setMinimumWidth(width)
-        pos = anchor_button.mapToGlobal(anchor_button.rect().bottomLeft())
         # Height is exactly as tall as the columns of rows shown (no internal
         # scrolling); the total capacity limit is enforced when saving a new
         # bookmark elsewhere, so this list is bounded in size.
@@ -97,7 +96,23 @@ class FavoritesPopup(QFrame):
         exact_height = row_height * self.list.count() + 2  # + border
         self.list.setVerticalScrollBarPolicy(
             Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.setGeometry(pos.x(), pos.y(), width, exact_height)
+
+        # Align this dropdown's right edge with the host window's right side
+        # (a corner pop-up anchored at the toolbar's right end), so it does
+        # not go out of view when running full-screen.
+        host = self.toolbar.window()
+        bottom_y = anchor_button.mapToGlobal(
+            anchor_button.rect().bottomLeft()).y()
+        if host is not None:
+            window_right = host.mapToGlobal(
+                host.rect().topRight()).x()
+        else:
+            window_right = anchor_button.mapToGlobal(
+                anchor_button.rect().topRight()).x()
+        left = window_right - width
+        if left < 0:
+            left = 0
+        self.setGeometry(left, bottom_y, width, exact_height)
         self.show()
         self.raise_()
         self.list.setFocus()
