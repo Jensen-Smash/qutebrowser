@@ -754,17 +754,16 @@ class AbstractDownloadItem(QObject):
         elif force_overwrite:
             self._after_set_filename()
         elif os.path.isfile(self._filename):
-            # The file already exists, so ask the user if it should be
-            # overwritten.
-            txt = "<b>{}</b> already exists. Overwrite?".format(
+            # 文件已存在：询问用户是否覆盖
+            txt = '文件：<b>{}</b><br/>已经存在，是否覆盖？'.format(
                 html.escape(self._filename))
-            self._ask_confirm_question("Overwrite existing file?", txt)
-        # FIFO, device node, etc. Make sure we want to do this
+            self._ask_confirm_question("文件已存在，是否覆盖？", txt)
+        # FIFO、设备节点等特殊文件：确认是否写入
         elif (os.path.exists(self._filename) and
               not os.path.isdir(self._filename)):
-            txt = ("<b>{}</b> already exists and is a special file. Write to "
-                   "it anyways?".format(html.escape(self._filename)))
-            self._ask_confirm_question("Overwrite special file?", txt)
+            txt = ('文件：<b>{}</b><br/>已经存在且为特殊文件，'
+                   '是否写入？'.format(html.escape(self._filename)))
+            self._ask_confirm_question("文件已存在，是否覆盖？", txt)
         else:
             self._after_set_filename()
 

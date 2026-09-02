@@ -3031,17 +3031,17 @@ colors.messages.info.border:
   desc: Border color of an info message.
 
 colors.prompts.fg:
-  default: white
+  default: '#202124'
   type: QssColor
   desc: Foreground color for prompts.
 
 colors.prompts.border:
-  default: 1px solid gray
+  default: 1px solid #d8dcdf
   type: String
   desc: Border used around UI elements in prompts.
 
 colors.prompts.bg:
-  default: '#444444'
+  default: '#ffffff'
   type: QssColor
   desc: Background color for prompts.
 

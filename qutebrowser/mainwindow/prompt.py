@@ -1008,20 +1008,20 @@ class YesNoPrompt(_BasePrompt):
     def _allowed_commands(self):
         cmds = []
 
-        cmds.append(('prompt-accept yes', "Yes"))
+        cmds.append(('prompt-accept yes', "是"))
         if self.question.option is not None:
-            cmds.append(('prompt-accept --save yes', "Always"))
+            cmds.append(('prompt-accept --save yes', "总是"))
 
-        cmds.append(('prompt-accept no', "No"))
+        cmds.append(('prompt-accept no', "否"))
         if self.question.option is not None:
-            cmds.append(('prompt-accept --save no', "Never"))
+            cmds.append(('prompt-accept --save no', "从不"))
 
         if self.question.default is not None:
             assert self.question.default in [True, False]
-            default = 'yes' if self.question.default else 'no'
-            cmds.append(('prompt-accept', "Use default ({})".format(default)))
+            default = '是' if self.question.default else '否'
+            cmds.append(('prompt-accept', "使用默认 ({})".format(default)))
 
-        cmds.append(('mode-leave', "Abort"))
+        cmds.append(('mode-leave', "取消"))
         cmds.append(('prompt-yank', "Yank URL"))
         return cmds
 
