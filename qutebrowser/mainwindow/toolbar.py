@@ -4,9 +4,11 @@ from qutebrowser.qt.widgets import (
     QLineEdit,
     QToolButton,
     QMenu,
+    QStyle,
 )
 
 from qutebrowser.qt.core import pyqtSignal
+from qutebrowser.qt.gui import QIcon
 
 class UrlBar(QLineEdit):
 
@@ -140,6 +142,23 @@ class Toolbar(QToolBar):
         self.history_menu.aboutToShow.connect(self._populate_history_menu)
 
         self.addWidget(self.history_button)
+
+        # 按钮图标化(无线文本)，保持整体风格统一：
+        #  后退 ← arrow / 历史, 刷新 loop / 历史 时钟(系统主题,退化到 loop)
+        style = self.style()
+        assert style is not None
+        self.back_button.setIcon(style.standardIcon(
+            QStyle.StandardPixmap.SP_ArrowBack))
+        self.reload_button.setIcon(style.standardIcon(
+            QStyle.StandardPixmap.SP_BrowserReload))
+        hist = QIcon.fromTheme('view-history')
+        if hist.isNull():
+            hist = style.standardIcon(
+                QStyle.StandardPixmap.SP_BrowserReload)
+        self.history_button.setIcon(hist)
+        for _btn in (self.back_button, self.reload_button,
+                     self.history_button):
+            _btn.setText("")
 
         # 与浅色 Chrome 一致的工具条按钮(容器再以统一浅背景底色并齐)
         self.setStyleSheet("""
