@@ -1539,7 +1539,7 @@ downloads.open_dispatcher:
 
 downloads.position:
   type: VerticalPosition
-  default: top
+  default: bottom
   desc: Where to show the downloaded files.
 
 downloads.prevent_mixed_content:
