@@ -121,7 +121,10 @@ class FavoritesSidebar(QWidget):
         for urlstr, title in items:
             display = title if title else urlstr
             item = QListWidgetItem(display, self.list)
-            item.setToolTip(urlstr)
+            # Hover tooltip shows the full stored title (fall back to the url
+            # when no title exists).
+            tooltip = title if title else urlstr
+            item.setToolTip(tooltip)
             item.setData(Qt.ItemDataRole.UserRole, urlstr)
             item.setData(Qt.ItemDataRole.UserRole + 1, title)
 
