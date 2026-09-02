@@ -125,3 +125,4 @@ class BrowserContainer(QWidget):
         if visible:
             self.sidebar.hide()
         self.downloads_sidebar.setVisible(visible)
+        self.toolbar.set_downloads_active(visible)

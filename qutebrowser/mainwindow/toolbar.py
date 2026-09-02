@@ -116,7 +116,7 @@ class Toolbar(QToolBar):
         # --- 下载按钮（切换右侧 DownloadsSidebar） ------------------------
         self.downloads_button = QToolButton(self)
         self.downloads_button.setToolTip("下载管理")
-        self.downloads_button.setText("下载 ⬇")
+        self.downloads_button.setText("下载 ▶")
         self.downloads_button.setFixedHeight(content_h)
         self.downloads_button.setStyleSheet("""
             QToolButton {
@@ -307,3 +307,10 @@ class Toolbar(QToolBar):
         self.bookmarks_button.setText("收藏夹 ◀" if active else "收藏夹 ▶")
         self.bookmarks_button.setToolTip(
             "收起收藏夹" if active else "打开收藏夹")
+
+    def set_downloads_active(self, active):
+        """Sync the 下载 button arrow with the sidebar visibility."""
+        self._downloads_active = bool(active)
+        self.downloads_button.setText("下载 ◀" if active else "下载 ▶")
+        self.downloads_button.setToolTip(
+            "收起下载列表" if active else "打开下载列表")
