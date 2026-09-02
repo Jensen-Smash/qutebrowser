@@ -1028,11 +1028,12 @@ class TabBarStyle(QProxyStyle):
             self.drawControl(QStyle.ControlElement.CE_TabBarTabLabel, opt, p, widget)
         elif element == QStyle.ControlElement.CE_TabBarTabShape:
 
-            # 标签外框，留出少量间距贴合紧凑观感
+            # 标签间不留横向空隙：相邻标签紧贴成一条连续 Edge 观感；
+            # 仅保留上下各 2px 呼吸以容纳圆角/不与顶栏边缘粘连。
             rect = opt.rect.adjusted(
+                0,
                 2,
-                2,
-                -2,
+                0,
                 -2
             )
 
