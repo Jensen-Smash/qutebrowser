@@ -117,6 +117,17 @@ class FavoritesPopup(QFrame):
         self.raise_()
         self.list.setFocus()
 
+    def _refit_height(self):
+        """Recompute widget geometry height after row count changed.
+
+        This keeps the popup boxed to exactly current number of rows even
+        during delete/rename (list doesn't keep a stale tall panel).
+        """
+        row_height = self.list.fontMetrics().height() + 8
+        height = row_height * self.list.count() + 2  # + border
+        # Keep the current x/width (right edge already fixed); update height.
+        self.setGeometry(self.x(), self.y(), self.width(), height)
+
     # -- item behaviours --------------------------------------------------
     def _entry(self, item):
         url = item.data(Qt.ItemDataRole.UserRole)
@@ -171,6 +182,7 @@ class FavoritesPopup(QFrame):
         except Exception:
             pass
         self._refresh()
+        self._refit_height()
         self.show()
 
     def _delete(self, url):
@@ -183,6 +195,7 @@ class FavoritesPopup(QFrame):
             except Exception:
                 pass
         self._refresh()
+        self._refit_height()
         self.show()
 
 
