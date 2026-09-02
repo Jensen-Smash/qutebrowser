@@ -53,10 +53,12 @@ class Toolbar(QToolBar):
         # 内容高 < 工具栏总高（toolbar 被容器固定为 32）：上下各留 ~2px，
         # 使按钮与地址栏在栏内“比工具栏稍矮”，观感更饱满且居中。
         content_h = 28
-        # 正方形导航按钮：宽=高=28，与旁按钮高度一致。
-        self.back_button.setFixedSize(content_h, content_h)
-        self.reload_button.setFixedSize(content_h, content_h)
-        self.url_bar.setFixedHeight(content_h)
+        # 导航/刷新/地址栏高度拉满至 32，与标签行及工具栏本身等高。
+        # (星标/历史等按钮保持各自 content_h，不改其观感。)
+        toolbar_h = 32
+        self.back_button.setFixedSize(toolbar_h, toolbar_h)
+        self.reload_button.setFixedSize(toolbar_h, toolbar_h)
+        self.url_bar.setFixedHeight(toolbar_h)
 
         # --- 收藏：星标按钮(不动) + 收藏夹按钮(切换右侧 FavoritesSidebar)
         # 显示在地址栏右侧(历史仍居最右)。侧栏显隐由 BrowserContainer 负责,
