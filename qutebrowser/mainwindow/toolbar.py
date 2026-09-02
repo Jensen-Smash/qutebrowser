@@ -19,7 +19,6 @@ class Toolbar(QToolBar):
     # Emitted when the "收藏夹" button is clicked; BrowserContainer toggles
     # the FavoritesSidebar and calls set_favorites_active() to sync the label.
     favorites_toggle_requested = pyqtSignal()
-    downloads_toggle_requested = pyqtSignal()
 
     def __init__(self, navigate_callback, back_callback, reload_callback,
                  open_new_tab_callback=None, bookmark_toggle_callback=None,
@@ -112,30 +111,6 @@ class Toolbar(QToolBar):
 
         self.addWidget(self.bookmark_button)
         self.addWidget(self.bookmarks_button)
-
-        # --- 下载按钮（切换右侧 DownloadsSidebar） ------------------------
-        self.downloads_button = QToolButton(self)
-        self.downloads_button.setToolTip("下载管理")
-        self.downloads_button.setText("下载 ▶")
-        self.downloads_button.setFixedHeight(content_h)
-        self.downloads_button.setStyleSheet("""
-            QToolButton {
-                background: transparent;
-                border: none;
-                color: #202124;
-                padding: 0 4px;
-                font-size: 13px;
-            }
-            QToolButton:hover {
-                background: #d8dcdf;
-            }
-            QToolButton:pressed {
-                background: #c5c9cc;
-            }
-        """)
-        self.downloads_button.clicked.connect(
-            self.downloads_toggle_requested.emit)
-        self.addWidget(self.downloads_button)
 
         # --- 历史记录按钮(弹出最近历史的下拉列) ---------------------------
         self.history_button = QToolButton(self)
@@ -307,10 +282,3 @@ class Toolbar(QToolBar):
         self.bookmarks_button.setText("收藏夹 ◀" if active else "收藏夹 ▶")
         self.bookmarks_button.setToolTip(
             "收起收藏夹" if active else "打开收藏夹")
-
-    def set_downloads_active(self, active):
-        """Sync the 下载 button arrow with the sidebar visibility."""
-        self._downloads_active = bool(active)
-        self.downloads_button.setText("下载 ◀" if active else "下载 ▶")
-        self.downloads_button.setToolTip(
-            "收起下载列表" if active else "打开下载列表")

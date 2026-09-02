@@ -7,7 +7,6 @@ from qutebrowser.qt.widgets import (
 from qutebrowser.qt.core import Qt
 
 from qutebrowser.mainwindow.favorites import FavoritesSidebar
-from qutebrowser.mainwindow.downloads import DownloadsSidebar
 
 
 class BrowserContainer(QWidget):
@@ -94,12 +93,8 @@ class BrowserContainer(QWidget):
             parent=self.content_area)
         self.sidebar.hide()
 
-        self.downloads_sidebar = DownloadsSidebar(parent=self.content_area)
-        self.downloads_sidebar.hide()
-
         content_layout.addWidget(self.tabs, 1)
         content_layout.addWidget(self.sidebar, 0)
-        content_layout.addWidget(self.downloads_sidebar, 0)
 
         self._layout.addWidget(self.tab_row)
         self._layout.addWidget(self.toolbar)
@@ -108,23 +103,9 @@ class BrowserContainer(QWidget):
         self.toolbar.set_favorites_active(False)
         self.toolbar.favorites_toggle_requested.connect(
             self.toggle_favorites_sidebar)
-        self.toolbar.downloads_toggle_requested.connect(
-            self.toggle_downloads_sidebar)
 
     def toggle_favorites_sidebar(self):
-        """Favourites on/off; opening it always closes downloads."""
+        """Show/hide the right-hand favourites sidebar."""
         visible = not self.sidebar.isVisible()
-        if visible:
-            self.downloads_sidebar.hide()
-            self.toolbar.set_downloads_active(False)
         self.sidebar.setVisible(visible)
         self.toolbar.set_favorites_active(visible)
-
-    def toggle_downloads_sidebar(self):
-        """Downloads on/off; opening it always closes favourites."""
-        visible = not self.downloads_sidebar.isVisible()
-        if visible:
-            self.sidebar.hide()
-            self.toolbar.set_favorites_active(False)
-        self.downloads_sidebar.setVisible(visible)
-        self.toolbar.set_downloads_active(visible)
