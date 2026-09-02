@@ -25,20 +25,6 @@ from qutebrowser.qt.core import Qt
 WIDTH = 130
 
 
-def _multiline(text, width=18):
-    """Force a string into horizontal chunks so a Qt tooltip never clips.
-
-    Qt shows tooltips as one unbroken line per newline; a very long, unbroken
-    title is otherwise cut off at the screen edge.  Emitting a short line per
-    chunk guarantees every character can be read.
-    """
-    text = str(text or '')
-    if not text:
-        return ''
-    lines = [text[i:i + width] for i in range(0, len(text), width)]
-    return '\n'.join(lines)
-
-
 def _bookmarks_manager():
     """Return the active BookmarkManager (registered by qutebrowser)."""
     try:
@@ -135,11 +121,6 @@ class FavoritesSidebar(QWidget):
         for urlstr, title in items:
             display = title if title else urlstr
             item = QListWidgetItem(display, self.list)
-            # Hover tooltip shows the full stored title, wrapped onto several
-            # short lines so nothing can be clipped (fall back to the url when
-            # no title exists).
-            tooltip = _multiline(title if title else urlstr)
-            item.setToolTip(tooltip)
             item.setData(Qt.ItemDataRole.UserRole, urlstr)
             item.setData(Qt.ItemDataRole.UserRole + 1, title)
 
