@@ -112,17 +112,19 @@ class BrowserContainer(QWidget):
             self.toggle_downloads_sidebar)
 
     def toggle_favorites_sidebar(self):
-        """Show/hide the right-hand favorites sidebar (downloads off)."""
+        """Favourites on/off; opening it always closes downloads."""
         visible = not self.sidebar.isVisible()
         if visible:
             self.downloads_sidebar.hide()
+            self.toolbar.set_downloads_active(False)
         self.sidebar.setVisible(visible)
         self.toolbar.set_favorites_active(visible)
 
     def toggle_downloads_sidebar(self):
-        """Show/hide the right-hand downloads sidebar (favorites off)."""
+        """Downloads on/off; opening it always closes favourites."""
         visible = not self.downloads_sidebar.isVisible()
         if visible:
             self.sidebar.hide()
+            self.toolbar.set_favorites_active(False)
         self.downloads_sidebar.setVisible(visible)
         self.toolbar.set_downloads_active(visible)
