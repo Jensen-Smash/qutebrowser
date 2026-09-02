@@ -69,7 +69,7 @@ class DownloadsSidebar(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self._hidden = set()  # relpaths hidden this session (keep file!)
+        # (no per-session remove-record state; rows mirror the folder)
 
         self.setObjectName('downloads_sidebar')
         self.setFixedWidth(WIDTH)
@@ -121,8 +121,6 @@ class DownloadsSidebar(QWidget):
             names = []
         for name in names:
             rel = name
-            if rel in self._hidden:
-                continue
             full = os.path.join(folder, name)
             if not os.path.isfile(full):
                 continue  # directories down arrows not offered
@@ -175,14 +173,10 @@ class DownloadsSidebar(QWidget):
             return
         menu = QMenu(self)
         a_folder = menu.addAction("打开下载文件夹")
-        a_delrec = menu.addAction("删除记录")
         a_delfile = menu.addAction("删除文件")
         chosen = menu.exec(self.list.viewport().mapToGlobal(pos))
         if chosen is a_folder:
             _open_folder()
-        elif chosen is a_delrec:
-            self._hidden.add(rel)
-            self._refresh()
         elif chosen is a_delfile:
             self._delete_file(path, rel)
 
@@ -208,5 +202,4 @@ class DownloadsSidebar(QWidget):
             from qutebrowser.utils import message
             message.error("删除失败：{}".format(exc))
             return
-        self._hidden.add(rel)
         self._refresh()
