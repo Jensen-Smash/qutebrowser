@@ -745,27 +745,34 @@ class AbstractDownloadItem(QObject):
             last_used_directory = os.path.dirname(self._filename)
 
         log.downloads.debug("Setting filename to {}".format(self._filename))
-        if self._get_conflicting_download():
-            txt = ("<b>{}</b> is already downloading. Cancel and "
-                   "re-download?".format(html.escape(self._filename)))
-            self._ask_confirm_question(
-                "Cancel other download?", txt,
-                custom_yes_action=self._cancel_conflicting_download)
-        elif force_overwrite:
-            self._after_set_filename()
-        elif os.path.isfile(self._filename):
-            # 文件已存在：询问用户是否覆盖
-            txt = '文件：<b>{}</b><br/>已经存在，是否覆盖？'.format(
-                html.escape(self._filename))
-            self._ask_confirm_question("文件已存在，是否覆盖？", txt)
-        # FIFO、设备节点等特殊文件：确认是否写入
-        elif (os.path.exists(self._filename) and
-              not os.path.isdir(self._filename)):
-            txt = ('文件：<b>{}</b><br/>已经存在且为特殊文件，'
-                   '是否写入？'.format(html.escape(self._filename)))
-            self._ask_confirm_question("文件已存在，是否覆盖？", txt)
-        else:
-            self._after_set_filename()
+        # Edge-like behavior: never block the download with an overwrite
+        # prompt. If the file (or another active download) already occupies
+        # the target, keep appending " (n)" until we have a free name.
+        self._auto_unique_filename()
+        self._after_set_filename()
+
+    def _auto_unique_filename(self):
+        """Make ``self._filename`` unique by appending `` (1)``, `` (2)``…
+
+        Checks both the filesystem and other active downloads (same manager)
+        so two in-flight downloads cannot collide either.
+        """
+        assert self._filename is not None
+        dirname = os.path.dirname(self._filename)
+        if (self._get_conflicting_download() is None and
+                not os.path.lexists(self._filename)):
+            return
+        stem, ext = os.path.splitext(os.path.basename(self._filename))
+        counter = 1
+        while True:
+            candidate = os.path.join(
+                dirname, "{} ({}){}".format(stem, counter, ext))
+            self._filename = candidate
+            if (self._get_conflicting_download() is None and
+                    not os.path.lexists(candidate)):
+                break
+            counter += 1
+        self.basename = os.path.basename(self._filename)
 
     def _conflicts_with(self, other: 'AbstractDownloadItem') -> bool:
         """Check if this download conflicts with the other given one."""
