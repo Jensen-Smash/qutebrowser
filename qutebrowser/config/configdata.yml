@@ -2566,7 +2566,7 @@ url.auto_search:
 
 url.default_page:
   type: FuzzyUrl
-  default: https://start.duckduckgo.com/
+  default: https://www.baidu.com
   desc: >-
     Page to open if :open -t/-b/-w is used without URL.
 
@@ -2588,7 +2588,7 @@ url.open_base_url:
 
 url.searchengines:
   default:
-    DEFAULT: https://duckduckgo.com/?q={}
+    DEFAULT: https://www.baidu.com/s?wd={}
   type:
     name: Dict
     required_keys: ['DEFAULT']
@@ -2625,7 +2625,7 @@ url.start_pages:
   type:
     name: ListOrValue
     valtype: FuzzyUrl
-  default: ["https://www.baidu.com/"]
+  default: ["https://www.baidu.com"]
   desc: Page(s) to open at the start.
 
 url.yank_ignored_parameters:
@@ -3172,8 +3172,11 @@ colors.statusbar.url.warn.fg:
   desc: "Foreground color of the URL in the statusbar when there's a warning."
 
 colors.tabs.bar.bg:
-  default: '#555555'
+
+  default: '#202124'
+
   type: QssColor
+
   desc: Background color of the tab bar.
 
 colors.tabs.indicator.start:
@@ -3197,42 +3200,55 @@ colors.tabs.indicator.system:
   desc: Color gradient interpolation system for the tab indicator.
 
 colors.tabs.odd.fg:
-  default: white
+
+  default: '#aaaaaa'
+
   type: QtColor
+
   desc: Foreground color of unselected odd tabs.
 
+
 colors.tabs.odd.bg:
-  default: grey
+
+  default: '#202124'
+
   type: QtColor
+
   desc: Background color of unselected odd tabs.
 
 colors.tabs.even.fg:
-  default: white
+
+  default: '#aaaaaa'
+
   type: QtColor
+
   desc: Foreground color of unselected even tabs.
 
 colors.tabs.even.bg:
-  default: darkgrey
+
+  default: '#202124'
+
   type: QtColor
+
   desc: Background color of unselected even tabs.
 
 colors.tabs.selected.odd.fg:
-  default: white
+  default: '#ffffff'
   type: QtColor
   desc: Foreground color of selected odd tabs.
 
 colors.tabs.selected.odd.bg:
-  default: black
+  default: '#3c4043'
   type: QtColor
   desc: Background color of selected odd tabs.
 
 colors.tabs.selected.even.fg:
-  default: white
+  default: '#ffffff'
   type: QtColor
   desc: Foreground color of selected even tabs.
 
 colors.tabs.selected.even.bg:
-  default: black
+  default: '#3c4043'
   type: QtColor
   desc: Background color of selected even tabs.
 

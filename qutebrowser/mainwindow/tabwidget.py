@@ -11,10 +11,18 @@ from typing import Optional, Any
 
 from qutebrowser.qt.core import (pyqtSignal, pyqtSlot, Qt, QSize, QRect, QPoint,
                           QTimer, QUrl)
-from qutebrowser.qt.widgets import (QTabWidget, QTabBar, QSizePolicy, QProxyStyle,
-                             QStyle, QStylePainter, QStyleOptionTab,
-                             QCommonStyle)
-from qutebrowser.qt.gui import QIcon, QPalette, QColor
+from qutebrowser.qt.widgets import (
+    QTabWidget,
+    QTabBar,
+    QSizePolicy,
+    QProxyStyle,
+    QStyle,
+    QStylePainter,
+    QStyleOptionTab,
+    QCommonStyle,
+    QToolButton,
+)
+from qutebrowser.qt.gui import QIcon, QPalette, QColor, QPainter
 
 from qutebrowser.utils import qtutils, objreg, utils, usertypes, log
 from qutebrowser.config import config, stylesheet
@@ -42,26 +50,87 @@ class TabWidget(QTabWidget):
 
     def __init__(self, win_id, parent=None):
         super().__init__(parent)
+
         bar = TabBar(win_id, self)
+
         self.setStyle(TabBarStyle())
         self.setTabBar(bar)
-        bar.tabCloseRequested.connect(self.tabCloseRequested)
+
+        self.setTabsClosable(True)
+
+        # 添加新建标签按钮
+        self.plus_button = QToolButton(self)
+        self.plus_button.setText("+")
+        self.plus_button.setFixedSize(30, 30)
+
+        self.plus_button.setStyleSheet("""
+            QToolButton {
+                background: #202124;
+                color: white;
+                border-radius: 8px;
+                font-size: 22px;
+            }
+
+            QToolButton:hover {
+                background: #4a4d51;
+            }
+
+            QToolButton:pressed {
+                background: #5f6368;
+            }
+            """)
+
+        self.plus_button.clicked.connect(
+            bar.new_tab_requested.emit
+        )
+
+        self.setCornerWidget(
+            self.plus_button,
+            Qt.Corner.TopRightCorner
+        )
+
+        # 标签关闭事件
+        bar.tabCloseRequested.connect(
+            self.tabCloseRequested
+        )
+
+        # 标签移动
         bar.tabMoved.connect(functools.partial(
-            QTimer.singleShot, 0, self.update_tab_titles))
-        bar.currentChanged.connect(self._on_current_changed)
-        bar.new_tab_requested.connect(self._on_new_tab_requested)
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+            QTimer.singleShot,
+            0,
+            self.update_tab_titles
+        ))
+
+        # 当前标签变化
+        bar.currentChanged.connect(
+            self._on_current_changed
+        )
+
+        # 新建标签
+        bar.new_tab_requested.connect(
+            self._on_new_tab_requested
+        )
+
+        self.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Fixed
+        )
+
         self.setDocumentMode(True)
         self.setUsesScrollButtons(True)
+
         bar.setDrawBase(False)
+
         self._init_config()
-        config.instance.changed.connect(self._init_config)
+        config.instance.changed.connect(
+            self._init_config
+        )
 
     @config.change_filter('tabs')
     def _init_config(self):
         """Initialize attributes based on the config."""
         self.setMovable(True)
-        self.setTabsClosable(False)
+        self.setTabsClosable(True)
         position = config.val.tabs.position
         selection_behavior = config.val.tabs.select_on_remove
         self.setTabPosition(position)
@@ -393,9 +462,14 @@ class TabBar(QTabBar):
 
     def __init__(self, win_id, parent=None):
         super().__init__(parent)
+
+        self.setFixedHeight(34)
+
         self._win_id = win_id
+
         self._our_style = TabBarStyle()
         self.setStyle(self._our_style)
+
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.vertical = False
         self._auto_hide_timer = usertypes.Timer()
@@ -408,6 +482,7 @@ class TabBar(QTabBar):
         # TabWidget._toggle_visibility below.
         self.drag_in_progress: bool = False
         stylesheet.set_register(self)
+
         self.ensurePolished()
         config.instance.changed.connect(self._on_config_changed)
         self._set_icon_size()
@@ -626,8 +701,7 @@ class TabBar(QTabBar):
         return QSize(width, height)
 
     def _minimum_tab_height_uncached(self):
-        padding = config.cache['tabs.padding']
-        return self.fontMetrics().height() + padding.top + padding.bottom
+        return 32
 
     def _tab_pinned(self, index: int) -> bool:
         """Return True if tab is pinned."""
@@ -869,11 +943,41 @@ class TabBarStyle(QProxyStyle):
             self.drawControl(QStyle.ControlElement.CE_TabBarTabShape, opt, p, widget)
             self.drawControl(QStyle.ControlElement.CE_TabBarTabLabel, opt, p, widget)
         elif element == QStyle.ControlElement.CE_TabBarTabShape:
-            p.fillRect(opt.rect, opt.palette.window())
+
+            # 标签外框，留出间距形成悬浮效果
+            rect = opt.rect.adjusted(
+                3,
+                3,
+                -3,
+                -3
+            )
+
+            # 开启抗锯齿，让圆角平滑
+            p.setRenderHint(
+                QPainter.RenderHint.Antialiasing
+            )
+
+            # 当前标签和普通标签不同颜色
+            if opt.state & QStyle.StateFlag.State_Selected:
+                color = QColor("#3c4043")
+            else:
+                color = QColor("#202124")
+
+            # 设置填充颜色
+            p.setBrush(color)
+
+            # 不画边框
+            p.setPen(Qt.PenStyle.NoPen)
+
+            # 绘制圆角矩形
+            p.drawRoundedRect(
+                rect,
+                8,
+                8
+            )
+
+            # 保留 qutebrowser 原来的加载指示条
             self._draw_indicator(layouts, opt, p)
-            # We use QCommonStyle rather than self.baseStyle() here because we don't want
-            # any sophisticated drawing.
-            QCommonStyle.drawControl(self, QStyle.ControlElement.CE_TabBarTabShape, opt, p, widget)
         elif element == QStyle.ControlElement.CE_TabBarTabLabel:
             if not opt.icon.isNull() and layouts.icon.isValid():
                 self._draw_icon(layouts, opt, p)
