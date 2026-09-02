@@ -90,7 +90,11 @@ class FavoritesPopup(QFrame):
         width = max(self.toolbar.bookmarks_button.width(), 280)
         self.setMinimumWidth(width)
         pos = anchor_button.mapToGlobal(anchor_button.rect().bottomLeft())
-        self.setGeometry(pos.x(), pos.y(), width, min(max(self.list.sizeHint().height(), 60), 340))
+        # Height wraps exactly the current number of entries (one non-empty
+        # placeholder row when empty). No default/minimum height is added.
+        row_height = self.list.fontMetrics().height() + 8
+        exact_height = row_height * self.list.count() + 2  # + border
+        self.setGeometry(pos.x(), pos.y(), width, exact_height)
         self.show()
         self.raise_()
         self.list.setFocus()
