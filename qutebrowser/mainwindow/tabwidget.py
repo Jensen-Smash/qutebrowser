@@ -1009,13 +1009,23 @@ class TabBarStyle(QProxyStyle):
 
         painter.save()
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        # Paint a soft rounded "hit" background while hovering so the tiny
+        # close glyph is much easier to aim at / see.
+        r = option.rect
+        if option.state & QStyle.StateFlag.State_MouseOver:
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QColor('#d5d9dc'))
+            painter.drawRoundedRect(r, r.height() // 2, r.height() // 2)
+
+        # Bold, dark close glyph scaled with the control.
         font = painter.font()
         font.setBold(True)
+        px = max(9, int(r.height() * 0.78))
+        font.setPixelSize(px)
         painter.setFont(font)
-        # Tint like surrounding chrome text so a bold × reads clearly on the
-        # active (white) tab without overriding the hover cue too much.
-        painter.setPen(QColor('#5f6368'))
-        painter.drawText(option.rect, Qt.AlignmentFlag.AlignCenter, '×')
+        painter.setPen(QColor('#1f2326'))
+        painter.drawText(r, Qt.AlignmentFlag.AlignCenter, '✕')
         painter.restore()
 
     def drawControl(self, element, opt, p, widget=None):
@@ -1084,8 +1094,7 @@ class TabBarStyle(QProxyStyle):
                 6
             )
 
-            # 保留 qutebrowser 原来的加载指示条
-            self._draw_indicator(layouts, opt, p)
+            # 不再绘制加载指示条(去掉标签左上角的绿色竖点/线)
         elif element == QStyle.ControlElement.CE_TabBarTabLabel:
             if not opt.icon.isNull() and layouts.icon.isValid():
                 self._draw_icon(layouts, opt, p)

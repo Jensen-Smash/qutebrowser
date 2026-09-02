@@ -2376,7 +2376,7 @@ tabs.title.elide:
   desc: Position of ellipsis in truncated title of tabs.
 
 tabs.title.format:
-  default: '{audio}{index}: {current_title}'
+  default: '{audio}{current_title}'
   type:
     name: FormatString
     fields:
@@ -2417,7 +2417,7 @@ tabs.title.format:
     * `{audio}`: Indicator for audio/mute status.
 
 tabs.title.format_pinned:
-  default: '{index}'
+  default: '{audio}{current_title}'
   type:
     name: FormatString
     fields:
