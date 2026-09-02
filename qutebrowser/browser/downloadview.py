@@ -133,21 +133,21 @@ class DownloadView(QListView):
             pass
         elif item.done:
             if item.successful:
-                actions.append(("Open", item.open_file))
-                actions.append(("Open directory", functools.partial(
+                actions.append(("打开文件", item.open_file))
+                actions.append(("打开所在文件夹", functools.partial(
                     item.open_file, open_dir=True, cmdline=None)))
             else:
-                actions.append(("Retry", item.try_retry))
-            actions.append(("Remove", item.remove))
+                actions.append(("重试", item.try_retry))
+            actions.append(("移除列表", item.remove))
         else:
-            actions.append(("Cancel", item.cancel))
+            actions.append(("取消", item.cancel))
 
         if item is not None:
-            actions.append(("Copy URL", functools.partial(
+            actions.append(("复制链接", functools.partial(
                 utils.set_clipboard, item.url().toDisplayString())))
         if model.can_clear():
             actions.append((None, None))
-            actions.append(("Remove all finished", model.download_clear))
+            actions.append(("清除所有已完成项", model.download_clear))
         return actions
 
     @pyqtSlot('QPoint')
