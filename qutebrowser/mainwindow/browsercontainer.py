@@ -59,6 +59,12 @@ class BrowserContainer(QWidget):
         if row_height <= 0:
             row_height = 34
         self.tab_row.setFixedHeight(row_height)
+        # 单元层为浅色条：顶行与工具栏共享同一浅背景,
+        # 激活标签为纯白以与页面形成“相连”的 Edge 观感。
+        bar_bg = '#eceff1'
+        self.tab_row.setStyleSheet('background-color: %s;' % bar_bg)
+        self.toolbar.setStyleSheet('QToolBar { background-color: %s; border: none; }'
+                                   % bar_bg)
 
         self._layout.addWidget(self.tab_row)
         self._layout.addWidget(self.toolbar)

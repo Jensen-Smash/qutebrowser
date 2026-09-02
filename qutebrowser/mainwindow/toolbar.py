@@ -40,6 +40,30 @@ class Toolbar(QToolBar):
         self.addWidget(self.reload_button)
         self.addWidget(self.url_bar)
 
+        # 与浅色 Chrome 一致的工具条按钮(容器再以统一浅背景底色并齐)
+        self.setStyleSheet("""
+            QToolBar { background-color: transparent; border: none; }
+
+            QToolBar QPushButton {
+                background: transparent;
+                color: #202124;
+                border: none;
+                border-radius: 6px;
+                padding: 3px 6px;
+                font-size: 15px;
+                font-weight: bold;
+            }
+            QToolBar QPushButton:hover {
+                background: #d8dcdf;
+            }
+            QToolBar QPushButton:pressed {
+                background: #c5c9cc;
+            }
+            QToolBar QPushButton:disabled {
+                color: #a5a9ad;
+            }
+        """)
+
 
     def search_baidu(self):
         text = self.url_bar.text()

@@ -100,18 +100,19 @@ class TabWidget(QWidget):
         self.plus_button.setFixedSize(30, 30)
         self.plus_button.setStyleSheet("""
             QToolButton {
-                background: #202124;
-                color: white;
-                border-radius: 8px;
-                font-size: 22px;
+                background: transparent;
+                color: #3c4043;
+                border-radius: 10px;
+                font-size: 18px;
+                font-weight: bold;
             }
 
             QToolButton:hover {
-                background: #4a4d51;
+                background: #d8dcdf;
             }
 
             QToolButton:pressed {
-                background: #5f6368;
+                background: #c5c9cc;
             }
             """)
 
@@ -885,8 +886,10 @@ class TabBar(QTabBar):
 
             tab.palette.setColor(QPalette.ColorRole.Window,
                                  config.cache[setting + '.bg'])
+            # 浅色主题：标签表面我们已按浅绘制,文字固定深灰保证可读,
+            # 不再依赖 config 中的暗色 fg(仍保留 bg 行以便 indicator 取 base)。
             tab.palette.setColor(QPalette.ColorRole.WindowText,
-                                 config.cache[setting + '.fg'])
+                                 QColor('#202124'))
 
             indicator_color = self.tab_indicator_color(idx)
             tab.palette.setColor(QPalette.ColorRole.Base, indicator_color)
@@ -1037,11 +1040,11 @@ class TabBarStyle(QProxyStyle):
                 QPainter.RenderHint.Antialiasing
             )
 
-            # 当前标签和普通标签不同颜色
+            # 当前标签和普通标签不同颜色 (浅色系 Edge 观感)
             if opt.state & QStyle.StateFlag.State_Selected:
-                color = QColor("#3c4043")
+                color = QColor("#ffffff")   # 激活标签: 纸白,与页面连续
             else:
-                color = QColor("#202124")
+                color = QColor("#f1f3f4")   # 未激活: 顶条浅灰浮块
 
             # 设置填充颜色
             p.setBrush(color)
