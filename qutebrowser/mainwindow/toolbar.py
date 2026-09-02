@@ -90,21 +90,14 @@ class FavoritesPopup(QFrame):
         width = max(self.toolbar.bookmarks_button.width(), 280)
         self.setMinimumWidth(width)
         pos = anchor_button.mapToGlobal(anchor_button.rect().bottomLeft())
-        # Height wraps exactly the current number of entries (one non-empty
-        # placeholder row when empty) but never exceeds max_height: beyond
-        # that the embedded list scrolls internally instead.
+        # Height is exactly as tall as the columns of rows shown (no internal
+        # scrolling); the total capacity limit is enforced when saving a new
+        # bookmark elsewhere, so this list is bounded in size.
         row_height = self.list.fontMetrics().height() + 8
         exact_height = row_height * self.list.count() + 2  # + border
-        max_height = 340
-        self.setGeometry(pos.x(), pos.y(), width, min(exact_height, max_height))
-        # Interior scrolling only matters when the rows would go past the cap;
-        # inside the cap the wrapped panel needs none.
-        if exact_height <= max_height:
-            self.list.setVerticalScrollBarPolicy(
-                Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        else:
-            self.list.setVerticalScrollBarPolicy(
-                Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+        self.list.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setGeometry(pos.x(), pos.y(), width, exact_height)
         self.show()
         self.raise_()
         self.list.setFocus()

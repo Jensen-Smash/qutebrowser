@@ -474,6 +474,12 @@ class MainWindow(QWidget):
                 title = str(raw)
         except Exception:
             pass
+        # Capacity guard: allow at most 30 bookmarks. Trying to star a
+        # (currently unstored) new page beyond that is rejected with a hint.
+        limit = 30
+        if urlstr not in manager.marks and len(manager.marks) >= limit:
+            message.info("收藏数量已达上限 ({})".format(limit))
+            return
         try:
             manager.add(url, title, toggle=True)
         except Exception:
