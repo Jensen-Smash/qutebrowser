@@ -97,16 +97,15 @@ class Toolbar(QToolBar):
         # --- 历史记录按钮(弹出最近历史的下拉列) ---------------------------
         self.history_button = QToolButton(self)
         self.history_button.setToolTip("历史记录")
-        style = self.style()
-        assert style is not None
-        self.history_button.setIcon(style.standardIcon(
-            QStyle.StandardPixmap.SP_BrowserReload))
-        self.history_button.setFixedSize(34, content_h)
-        self.history_button.setIconSize(QSize(20, 20))
+        self.history_button.setText("历史")          # 文字钮(与收藏夹统一)
+        self.history_button.setFixedHeight(content_h)
         self.history_button.setStyleSheet("""
             QToolButton {
                 background: transparent;
                 border: none;
+                color: #202124;
+                padding: 0 4px;
+                font-size: 13px;
             }
             QToolButton:hover {
                 background: #d8dcdf;
