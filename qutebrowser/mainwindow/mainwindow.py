@@ -31,7 +31,7 @@ from qutebrowser.qt import sip
 from qutebrowser.mainwindow import toolbar
 from qutebrowser.mainwindow.browsercontainer import BrowserContainer
 
-from qutebrowser.qt.core import QUrl
+from qutebrowser.qt.core import QUrl, QEvent
 
 win_id_gen = itertools.count(0)
 
@@ -259,6 +259,9 @@ class MainWindow(QWidget):
         # WebView 因此自然延伸到底部。若要命令/提示模式时仍可用，状态栏
         # 可短暂自显，正常状态随时保持不占用。
         self.status.hide()
+        # Show 事件一旦触发（StatusBar 内部可能重新自显）一律拦截并隐藏，
+        # 实现“彻底不出现”，同时保留对象引用不影响命令/进度逻辑。
+        self.status.installEventFilter(self)
 
         self._add_widgets()
         self._downloadview.show()
@@ -422,6 +425,13 @@ class MainWindow(QWidget):
         widget.destroyed.connect(
             functools.partial(objreg.delete, 'command-dispatcher',
                               scope='window', window=self.win_id))
+
+    def eventFilter(self, obj, event):
+        """Never let the (otherwise useful) StatusBar become visible."""
+        if obj is self.status and event.type() == QEvent.Type.Show:
+            self.status.hide()
+            return True
+        return super().eventFilter(obj, event)
 
     def go_back(self):
         tab = self.tabbed_browser._current_tab()
