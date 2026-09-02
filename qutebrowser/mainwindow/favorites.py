@@ -22,7 +22,7 @@ from qutebrowser.qt.widgets import (
 )
 from qutebrowser.qt.core import Qt
 
-WIDTH = 260
+WIDTH = 130
 
 
 def _bookmarks_manager():
