@@ -63,22 +63,25 @@ class FavoritesPopup(QFrame):
         """)
 
     # -- helpers ----------------------------------------------------------
-    def _display(self, urlstr, title):
-        if title and title != urlstr:
-            return f"{title} — {urlstr}"
-        return urlstr
+    def _display(self, _urlstr, title):
+        """Only the name/title is shown in the list."""
+        return title if title else ""
 
     def _refresh(self):
         """(Re)build rows from the manager, keeping current visible."""
         manager = _bookmarks_manager()
         self.list.clear()
-        if manager is None:
-            return
-        for urlstr, title in manager.marks.items():
-            item = QListWidgetItem(self._display(urlstr, title), self.list)
+        items = list(manager.marks.items()) if manager is not None else []
+        for urlstr, title in items:
+            display = title if title else urlstr
+            item = QListWidgetItem(display, self.list)
             item.setToolTip(urlstr)
             item.setData(Qt.ItemDataRole.UserRole, urlstr)
             item.setData(Qt.ItemDataRole.UserRole + 1, title)
+
+        if not items:
+            placeholder = QListWidgetItem("收藏夹为空", self.list)
+            placeholder.setFlags(Qt.ItemFlag.NoItemFlags)
 
     def show_at(self, anchor_button):
         """Re-fill and show popup just under the given toolbar button."""
@@ -100,6 +103,8 @@ class FavoritesPopup(QFrame):
 
     def _open_current(self, item):
         url, _ = self._entry(item)
+        if not url:
+            return
         self.hide()
         cb = self.toolbar.navigate_callback
         if cb is not None and url:
